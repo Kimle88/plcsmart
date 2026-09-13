@@ -1,0 +1,3078 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLCSmart – Siemens S7</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root{--bg:#f2f2f2;--bg2:#ffffff;--bg3:#ebebeb;--border:#d0d0d0;--border2:#b8b8b8;--accent:#D4380D;--accent2:#E85D04;--accent-glow:rgba(212,56,13,0.12);--green:#237804;--yellow:#874d00;--red:#cf1322;--text:#1a1a1a;--text-dim:#595959;--siemens:#d4380d;--iec-line:#555555;--iec-contact:#237804;--iec-nc:#cf1322;--iec-coil:#874d00;--iec-coil-set:#ad6800;--iec-coil-reset:#cf1322;--iec-timer:#391085;--iec-counter:#006d75;--iec-rail:#d4380d;--iec-bg:#f7f7f7;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+body::before{content:'';position:fixed;inset:0;background:none;pointer-events:none;z-index:9999;}
+header{background:#ffffff;border-bottom:3px solid var(--accent);padding:0 16px;height:48px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:relative;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+
+.logo{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:800;letter-spacing:1px;color:var(--accent);text-transform:uppercase;}
+.logo-badge{background:var(--siemens);color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:1px;}
+.user-bar{display:flex;align-items:center;gap:10px;}
+.user-info{text-align:right;}
+.user-email{font-size:11px;color:var(--text);font-family:'JetBrains Mono',monospace;font-weight:600;}
+.user-plan{font-size:9px;letter-spacing:1px;font-weight:700;}
+.plan-free{color:#6b8aaa;} .plan-pro{color:var(--accent);} .plan-enterprise{color:var(--yellow);}
+.usage-pill{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-dim);background:var(--bg3);border:1px solid var(--border);padding:3px 10px;border-radius:3px;}
+
+/* KB optgroup in select */
+.kb-badge-dot{display:inline-block;width:6px;height:6px;background:var(--accent);border-radius:50%;margin-left:4px;vertical-align:middle;}
+/* ── Edit Mode ── */
+.edit-tbtn{background:var(--bg3);border:1px solid var(--border2);border-radius:4px;color:var(--text);cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;padding:3px 9px;letter-spacing:.5px;transition:all .15s;white-space:nowrap;}
+.edit-tbtn:hover{border-color:var(--accent);color:var(--accent);}
+/* Palette — same as ladder-editor */
+.edit-pal-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:6px;}
+.edit-pal-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;cursor:grab;transition:all .15s;user-select:none;}
+.edit-pal-item:hover{border-color:var(--accent);background:rgba(0,119,204,.07);}
+.edit-pal-item:active{cursor:grabbing;opacity:.7;}
+.edit-pal-item svg{pointer-events:none;}
+.edit-pal-item span{font-size:8px;font-weight:700;color:var(--text-dim);letter-spacing:.5px;font-family:'Rajdhani',sans-serif;pointer-events:none;}
+/* Rung — same structure as ladder-editor */
+.edit-rung{display:flex;margin-bottom:6px;animation:fadeUp .2s ease forwards;opacity:0;}
+.edit-rung-num{width:32px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-dim);font-size:10px;font-family:'JetBrains Mono',monospace;gap:4px;cursor:default;}
+.edit-rung-body{flex:1;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:var(--bg2);transition:border-color .15s;}
+.edit-rung-body:hover{border-color:var(--border2);}
+.edit-rung-body.er-selected{border-color:var(--accent);}
+.edit-comment-bar{display:flex;align-items:center;gap:6px;padding:3px 8px;background:var(--bg3);border-bottom:1px solid var(--border);}
+.edit-comment-inp{flex:1;background:none;border:none;color:var(--yellow);font-size:10px;font-family:'JetBrains Mono',monospace;outline:none;font-style:italic;}
+.edit-rung-actions{display:flex;gap:3px;margin-left:auto;}
+.edit-ra-btn{background:none;border:1px solid var(--border);border-radius:3px;cursor:pointer;font-size:9px;color:var(--text-dim);padding:1px 5px;transition:all .15s;}
+.edit-ra-btn:hover{border-color:var(--accent);color:var(--accent);}
+.edit-ra-btn.del:hover{border-color:#cc2200;color:#cc2200;}
+/* Elements — same as ladder-editor */
+.edit-elem-cell{min-width:60px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;z-index:1;cursor:pointer;padding:4px 2px;transition:all .15s;border-radius:4px;}
+.edit-elem-cell:hover .edit-elem-svg{filter:brightness(1.3);}
+.edit-elem-cell.ec-selected .edit-elem-svg{filter:brightness(1.4);}
+.edit-elem-cell.ec-selected{background:rgba(0,119,204,.06);outline:2px solid var(--accent);outline-offset:1px;}
+.edit-elem-cell.ec-drop{background:rgba(0,119,204,.1);outline:2px dashed var(--accent);outline-offset:1px;}
+.edit-elem-tag{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text-dim);margin-bottom:2px;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;}
+.edit-elem-addr{font-size:8px;font-family:'JetBrains Mono',monospace;color:var(--text-dim);opacity:.6;margin-top:1px;}
+.edit-elem-del{position:absolute;top:-5px;right:-5px;width:13px;height:13px;border-radius:50%;background:#cc2200;color:#fff;font-size:8px;line-height:13px;text-align:center;cursor:pointer;display:none;z-index:5;}
+.edit-elem-cell:hover .edit-elem-del{display:block;}
+.edit-drop-gap{width:24px;min-height:50px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:copy;opacity:.4;transition:all .15s;border-radius:4px;}
+.edit-drop-gap.dg-hover{opacity:1;background:rgba(0,119,204,.15);border:1.5px dashed var(--accent);width:32px;}
+/* Branch rows */
+.edit-branch-row{display:flex;align-items:center;min-height:90px;position:relative;flex-wrap:nowrap;overflow-x:auto;}
+.edit-branch-wire{position:absolute;left:0;right:0;top:50%;height:2px;background:var(--iec-line);opacity:.25;pointer-events:none;}
+.edit-power-rail{width:12px;flex-shrink:0;background:var(--accent2);border-radius:2px;align-self:stretch;display:flex;align-items:center;justify-content:center;}
+.edit-power-rail-label{font-size:7px;color:#fff;font-weight:800;writing-mode:vertical-rl;letter-spacing:1px;opacity:.7;}
+.edit-post-row{border-top:1px dashed rgba(0,119,204,.2);background:rgba(0,119,204,.02);}
+.edit-out-row{border-top:1px solid var(--border);display:flex;align-items:center;padding:4px 8px;gap:6px;}
+.edit-out-label{font-size:9px;font-weight:700;color:var(--iec-coil);font-family:'JetBrains Mono';min-width:28px;}
+.edit-out-drop{width:60px;height:44px;border:1.5px dashed var(--border2);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text-dim);cursor:default;transition:all .15s;}
+.edit-out-drop.dg-hover{border-color:var(--iec-coil);background:rgba(204,153,0,.07);}
+.edit-output-cell{display:flex;flex-direction:column;align-items:center;cursor:pointer;padding:2px 4px;border-radius:4px;transition:all .15s;}
+.edit-output-cell:hover .edit-elem-svg{filter:brightness(1.3);}
+.edit-output-cell.ec-selected{outline:2px solid var(--iec-coil);outline-offset:2px;background:rgba(204,153,0,.06);}
+.edit-vbar{width:12px;flex-shrink:0;align-self:stretch;display:flex;align-items:stretch;justify-content:center;}
+.edit-vbar-inner{width:3px;background:var(--accent);opacity:.5;border-radius:2px;margin:45px 0;}
+
+.sim-toolbar{display:none;align-items:center;gap:8px;padding:6px 10px;background:linear-gradient(90deg,rgba(0,153,77,.07),rgba(0,153,77,.02));border-bottom:1.5px solid rgba(0,153,77,.25);flex-shrink:0;flex-wrap:wrap;}
+.sim-toolbar.active{display:flex;}
+.btn-sim{background:var(--bg3);border:1.5px solid #00994d;border-radius:5px;color:#00994d;cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;padding:4px 12px;letter-spacing:1px;transition:all .2s;white-space:nowrap;}
+.btn-sim:hover{background:rgba(0,153,77,.1);}
+.btn-sim.running{background:rgba(204,34,0,.1);border-color:#cc2200;color:#cc2200;}
+.sim-hint{font-size:9px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+.sim-wire-active{stroke:#00cc55 !important;stroke-width:2.5 !important;filter:drop-shadow(0 0 3px rgba(0,204,85,.55));}
+.sim-wire-inactive{stroke:rgba(120,140,160,.3) !important;stroke-width:1.5 !important;filter:none !important;}
+.sim-coil-active{stroke:#00cc55 !important;stroke-width:3 !important;filter:drop-shadow(0 0 5px rgba(0,204,85,.7));}
+.sim-coil-inactive{stroke:rgba(120,140,160,.3) !important;}
+.sim-rail-active{fill:#00994d !important;}
+.sim-rail-inactive{fill:rgba(120,140,160,.35) !important;}
+@keyframes simFlow{0%{stroke-dashoffset:20}100%{stroke-dashoffset:0}}
+.sim-wire-active{animation:simFlow .4s linear infinite !important;stroke-dasharray:6 3 !important;}
+.lang-switcher{display:flex;align-items:center;gap:2px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:2px 4px;}
+.lang-btn{background:none;border:none;cursor:pointer;font-size:10px;font-weight:700;font-family:'Rajdhani',sans-serif;letter-spacing:0.5px;color:var(--text-dim);padding:2px 5px;border-radius:3px;transition:all .2s;}
+.lang-btn.active{background:var(--accent);color:#fff;}
+.lang-btn:hover:not(.active){color:var(--text);}
+
+/* ── PLC Brand Selector ── */
+.plc-brand-btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+.brand-btn{background:var(--bg3);border:1.5px solid var(--border2);border-radius:6px;color:var(--text-dim);cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;padding:7px 6px;transition:all .2s;letter-spacing:0.5px;text-align:center;display:flex;align-items:center;justify-content:center;gap:5px;}
+.brand-btn:hover{border-color:var(--accent);color:var(--text);}
+.brand-btn.active{border-color:var(--brand-color,var(--accent));background:var(--brand-bg,rgba(0,119,204,0.08));color:var(--brand-color,var(--accent));}
+.brand-icon{font-size:13px;}
+/* Brand color overrides */
+#brand-mitsubishi.active{--brand-color:#cf1322;--brand-bg:rgba(207,19,34,0.06);}
+#brand-ab.active{--brand-color:#cc8800;--brand-bg:rgba(204,136,0,0.07);}
+/* Export button adapt */
+.ba.awl{display:block;}
+.ba.gx{background:var(--bg3);border:1px solid #cc2222;color:#cc2222;display:none;}
+.ba.gx:hover{background:rgba(204,34,34,0.08);}
+.ba.rstxt{background:var(--bg3);border:1px solid #cc8800;color:#cc8800;display:none;}
+.ba.rstxt:hover{background:rgba(204,136,0,0.08);}
+.btn-sm{background:var(--bg3);border:1px solid var(--border2);border-radius:5px;color:var(--text-dim);cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;padding:5px 12px;transition:all .2s;letter-spacing:1px;}
+.btn-sm:hover{color:var(--accent);border-color:var(--accent);}
+.btn-sm.danger:hover{color:var(--red);border-color:var(--red);}
+.app-layout{display:grid;grid-template-columns:320px 1fr;flex:1;height:calc(100vh - 48px);overflow:hidden;transition:grid-template-columns .25s ease;position:relative;}
+.left-panel{display:flex;flex-direction:column;border-right:2px solid var(--border);overflow:hidden;position:relative;background:var(--bg2);}
+.tabs{display:flex;background:var(--bg3);border-bottom:2px solid var(--border);flex-shrink:0;}
+.tab{padding:8px 14px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--text-dim);cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;text-transform:uppercase;display:flex;align-items:center;gap:5px;}
+.tab:hover{color:var(--text);background:var(--accent-glow);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.scroll-area{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;}
+.fl{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--text-dim);text-transform:uppercase;margin-bottom:5px;}
+.fg{display:flex;flex-direction:column;}
+.sel,.inp,.tarea{background:var(--bg3);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;padding:8px 12px;outline:none;transition:all .2s;width:100%;}
+.sel:focus,.inp:focus,.tarea:focus{border-color:var(--accent);}
+.tarea{min-height:90px;resize:vertical;line-height:1.6;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.io-wrap{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;overflow:hidden;}
+.io-head{display:grid;grid-template-columns:1fr 75px 75px 26px;background:var(--bg2);border-bottom:1px solid var(--border);padding:5px 8px;font-size:9px;font-weight:700;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;}
+.io-row{display:grid;grid-template-columns:1fr 75px 75px 26px;padding:3px 6px;gap:4px;border-bottom:1px solid var(--border);align-items:center;}
+.io-row input,.io-row select{background:transparent;border:1px solid transparent;border-radius:3px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;padding:3px 5px;outline:none;width:100%;}
+.io-row input:focus,.io-row select:focus{border-color:var(--border2);background:var(--bg3);}
+.brm{background:none;border:none;cursor:pointer;color:var(--text-dim);font-size:12px;padding:2px;border-radius:3px;transition:color .2s;line-height:1;}
+.brm:hover{color:var(--red);}
+.badd{background:none;border:1px dashed var(--border2);color:var(--text-dim);cursor:pointer;font-size:10px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;padding:5px;width:100%;transition:all .2s;text-transform:uppercase;}
+.badd:hover{color:var(--accent);border-color:var(--accent);}
+.btn-gen{background:var(--accent);border:none;border-radius:4px;color:#fff;cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;padding:11px;text-transform:uppercase;width:100%;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s;box-shadow:0 2px 8px rgba(212,56,13,.3);}
+.btn-gen:hover:not(:disabled){background:var(--accent2);}
+.btn-gen:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading .spinner{display:block;}
+.loading .btn-text{display:none;}
+/* Right */
+
+/* ── Collapsible Left Panel ── */
+.app-layout{transition:grid-template-columns .25s ease;}
+.app-layout.collapsed{grid-template-columns:0px 1fr;}
+.app-layout.collapsed .left-panel{opacity:0;pointer-events:none;}
+.collapse-btn{position:absolute;top:50%;left:360px;transform:translate(-50%,-50%);z-index:200;
+  width:16px;height:52px;background:var(--accent2);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:0 6px 6px 0;box-shadow:2px 0 8px rgba(0,0,0,0.2);
+  transition:background .2s, left .25s ease;}
+.app-layout.collapsed .collapse-btn{left:0;}
+.collapse-btn:hover{background:var(--accent2);}
+.collapse-btn svg{transition:transform .25s ease;}
+.app-layout.collapsed .collapse-btn svg{transform:rotate(180deg);}
+.collapse-btn-icon{fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.right-panel{display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
+.out-tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;justify-content:space-between;align-items:center;padding-right:10px;}
+.out-actions{display:flex;gap:6px;}
+.ba{background:var(--bg3);border:1px solid var(--border2);border-radius:4px;color:var(--text-dim);cursor:pointer;font-size:10px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;padding:4px 10px;transition:all .2s;text-transform:uppercase;}
+.ba:hover{color:var(--accent);border-color:var(--accent);}
+.ba.pdf{background:rgba(187,34,0,.07);border-color:rgba(187,34,0,.3);color:#bb2200;}
+.ba.pdf:hover{border-color:var(--red);color:var(--red);}
+.ba.save{background:rgba(0,122,56,.07);border-color:rgba(0,122,56,.3);color:#007a38;}
+.ba.save:hover{border-color:var(--green);}
+.ba.tia{background:rgba(0,153,153,.1);border-color:rgba(0,153,153,.4);color:#00cccc;}
+.ba.tia:hover{border-color:#009999;color:#009999;}
+.ba.awl{background:rgba(160,112,0,.07);border-color:rgba(160,112,0,.3);color:#a07000;}
+.ba.awl:hover{border-color:var(--yellow);color:var(--yellow);}
+/* Import guide modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:28px;max-width:560px;width:90%;max-height:80vh;overflow-y:auto;position:relative;}
+.modal h2{font-size:16px;font-weight:700;color:var(--accent);letter-spacing:1px;margin-bottom:16px;}
+.modal-close{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:18px;}
+.modal-close:hover{color:var(--red);}
+.step{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start;}
+.step-num{background:var(--accent2);color:#fff;font-size:11px;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.step-text{font-size:13px;line-height:1.6;color:var(--text);}
+.step-text code{font-family:'JetBrains Mono',monospace;background:var(--bg3);border:1px solid var(--border2);padding:1px 6px;border-radius:3px;font-size:11px;color:var(--green);}
+.tip-box{background:rgba(0,119,204,.07);border:1px solid rgba(0,119,204,.2);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--text-dim);margin-top:14px;line-height:1.7;}
+.tip-box strong{color:var(--accent);}
+.dl-row{display:flex;gap:8px;margin-top:16px;}
+.ladder-canvas{flex:1;overflow:auto;background:#f7f7f7;padding:4px 8px;display:flex;flex-direction:column;}
+.program-header{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:5px 14px;margin-bottom:1px;display:flex;align-items:center;justify-content:space-between;}
+.prog-title{font-size:15px;font-weight:700;color:var(--accent);letter-spacing:1px;}
+.prog-meta{font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;}
+.rung-wrap{display:flex;margin-bottom:0;animation:fadeUp .25s ease forwards;opacity:0;}
+@keyframes fadeUp{to{opacity:1}}
+.rung-nc{width:38px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.rung-nl{writing-mode:vertical-rl;font-size:9px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;letter-spacing:1px;opacity:.6;}
+.rung-body{flex:1;display:flex;flex-direction:column;}
+.rung-cl{font-size:10px;color:var(--yellow);font-family:'JetBrains Mono',monospace;padding:1px 8px 0;font-style:italic;opacity:.8;text-align:center;}
+.rung-sw{overflow-x:auto;width:100%;}
+.rung-sw svg{display:block;width:100%;}
+.code-pane{flex:1;overflow:auto;padding:14px;display:none;}
+.code-block{background:#f8fafc;border:1px solid var(--border);border-radius:6px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.9;white-space:pre;color:#1a2a3a;}
+.info-pane{flex:1;overflow:auto;padding:14px;display:none;}
+.info-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:10px;}
+.info-card h3{font-size:12px;font-weight:700;letter-spacing:1px;color:var(--accent);margin-bottom:8px;text-transform:uppercase;}
+.iot{width:100%;border-collapse:collapse;font-size:11px;font-family:'JetBrains Mono',monospace;}
+.iot th{background:var(--bg3);color:var(--text-dim);padding:5px 8px;text-align:left;border:1px solid var(--border);font-size:9px;letter-spacing:1px;text-transform:uppercase;}
+.iot td{padding:4px 8px;border:1px solid var(--border);}
+.note-item{padding:6px 10px;border-left:2px solid var(--yellow);margin-bottom:5px;font-size:12px;background:rgba(160,112,0,.06);border-radius:0 4px 4px 0;}
+/* History pane */
+.hist-pane{flex:1;overflow:auto;padding:14px;display:none;}
+.hist-item{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:space-between;}
+.hist-item:hover{border-color:var(--accent);background:var(--bg3);}
+.hist-title{font-size:13px;font-weight:600;color:var(--text);}
+.hist-meta{font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;margin-top:3px;}
+.hist-del{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;padding:4px;transition:color .2s;}
+.hist-del:hover{color:var(--red);}
+/* Chat */
+.chat-wrap{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.chat-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;}
+.msg{display:flex;gap:8px;animation:fadeUp .2s ease;}
+.ava{width:24px;height:24px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
+.msg.ai .ava{background:var(--siemens);color:#fff;}
+.msg.user .ava{background:var(--accent2);color:#fff;order:2;}
+.bubble{max-width:82%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;font-size:13px;line-height:1.6;}
+.msg.user .bubble{background:var(--accent2);border-color:var(--accent);margin-left:auto;color:#fff;}
+.bubble code{font-family:'JetBrains Mono',monospace;background:rgba(0,0,0,.06);padding:1px 4px;border-radius:3px;font-size:11px;color:var(--green);}
+.bubble pre{background:#f8fafc;border:1px solid var(--border);border-radius:5px;padding:8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#1a2a3a;white-space:pre-wrap;margin-top:6px;}
+.chat-bar{padding:10px;background:var(--bg2);border-top:1px solid var(--border);display:flex;gap:8px;}
+.chat-inp{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:500;padding:8px 12px;outline:none;transition:border-color .2s;resize:none;height:38px;}
+.chat-inp:focus{border-color:var(--accent);}
+.bsend{background:var(--accent);border:none;border-radius:7px;color:var(--bg);cursor:pointer;font-size:16px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;}
+.bsend:hover:not(:disabled){background:var(--accent2);color:#fff;}
+.bsend:disabled{opacity:.4;cursor:not-allowed;}
+
+/* ── Knowledge Base ── */
+.kb-pane{display:none;flex:1;flex-direction:column;overflow:hidden;padding:10px;}
+.kb-drop{border:2px dashed var(--border2);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg3);position:relative;}
+.kb-drop:hover,.kb-drop.drag-over{border-color:var(--accent);background:rgba(0,119,204,.05);}
+.kb-drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.kb-drop-ic{font-size:28px;margin-bottom:6px;}
+.kb-drop-txt{font-size:11px;color:var(--text-dim);font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:1px;}
+.kb-list{margin-top:8px;display:flex;flex-direction:column;gap:4px;overflow-y:auto;flex:1;}
+.kb-item{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;display:flex;align-items:center;gap:8px;}
+.kb-item-ic{font-size:16px;flex-shrink:0;}
+.kb-item-info{flex:1;min-width:0;}
+.kb-item-name{font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'JetBrains Mono',monospace;}
+.kb-item-meta{font-size:10px;color:var(--text-dim);margin-top:2px;}
+.kb-item-del{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;padding:2px 4px;border-radius:3px;transition:color .2s;flex-shrink:0;}
+.kb-item-del:hover{color:var(--red);}
+.kb-status{font-size:10px;padding:3px 8px;border-radius:10px;font-weight:700;letter-spacing:0.5px;white-space:nowrap;}
+.kb-status.processing{background:rgba(160,112,0,.12);color:var(--yellow);}
+.kb-status.ready{background:rgba(0,122,56,.12);color:var(--contact-no);}
+.kb-status.error{background:rgba(187,34,0,.12);color:var(--red);}
+.kb-empty{text-align:center;color:var(--text-dim);padding:24px;font-size:12px;}
+.kb-hint{font-size:10px;color:var(--text-dim);line-height:1.6;padding:8px 10px;background:rgba(0,119,204,.04);border-radius:6px;border:1px solid rgba(0,119,204,.1);margin-top:6px;}
+/* Empty */
+.empty-s{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--text-dim);text-align:center;padding:40px;}
+.empty-ic{font-size:48px;opacity:.2;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+/* Upgrade banner */
+.upgrade-banner{background:linear-gradient(90deg,rgba(0,119,204,.06),rgba(0,119,204,.06));border:1px solid rgba(160,112,0,.3);border-radius:6px;padding:10px 14px;font-size:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.btn-upgrade{background:var(--yellow);border:none;border-radius:5px;color:#1a2a3a;cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;padding:5px 14px;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;}
+
+/* ── Knowledge Base ── */
+.kb-pane{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;}
+.kb-dropzone{border:2px dashed var(--border2);border-radius:8px;padding:20px 14px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg3);}
+.kb-dropzone:hover,.kb-dropzone.drag-over{border-color:var(--accent);background:rgba(0,119,204,.05);}
+.kb-dropzone-icon{font-size:28px;margin-bottom:6px;}
+.kb-dropzone-text{font-size:11px;color:var(--text-dim);line-height:1.6;}
+.kb-dropzone-text strong{color:var(--accent);cursor:pointer;}
+.kb-file-input{display:none;}
+.kb-list{display:flex;flex-direction:column;gap:6px;}
+.kb-item{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;display:flex;align-items:center;gap:8px;}
+.kb-item-icon{font-size:16px;flex-shrink:0;}
+.kb-item-info{flex:1;min-width:0;}
+.kb-item-name{font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'JetBrains Mono',monospace;}
+.kb-item-meta{font-size:10px;color:var(--text-dim);margin-top:2px;}
+.kb-item-del{background:none;border:none;cursor:pointer;color:var(--text-dim);font-size:12px;padding:2px 4px;border-radius:3px;flex-shrink:0;transition:color .2s;}
+.kb-item-del:hover{color:var(--red);}
+.kb-status{font-size:10px;padding:6px 10px;border-radius:5px;text-align:center;font-family:'JetBrains Mono',monospace;}
+.kb-status.parsing{background:rgba(85,51,170,.1);color:var(--iec-timer);border:1px solid rgba(85,51,170,.2);}
+.kb-status.done{background:rgba(0,122,56,.1);color:var(--green);border:1px solid rgba(0,122,56,.2);}
+.kb-status.error{background:rgba(187,34,0,.1);color:var(--red);border:1px solid rgba(187,34,0,.2);}
+.kb-active-badge{background:rgba(0,119,204,.12);border:1px solid rgba(0,119,204,.3);border-radius:4px;padding:4px 10px;font-size:10px;color:var(--accent);font-family:'JetBrains Mono',monospace;text-align:center;}
+.kb-empty{text-align:center;color:var(--text-dim);font-size:12px;padding:20px;line-height:1.7;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⚡ PLCSmart <span class="logo-badge">S7</span></div>
+  <div class="user-bar">
+    <div class="usage-pill" id="usage-pill">-- / -- <span data-i18n="usageSuffix">lần tháng này</span></div>
+    <div class="user-info">
+      <div class="user-email" id="user-email">...</div>
+      <div class="user-plan" id="user-plan"></div>
+    </div>
+    <div class="lang-switcher" id="lang-switcher"><button class="lang-btn" onclick="setLang('en')">EN</button><button class="lang-btn" onclick="setLang('vi')">VI</button><button class="lang-btn" onclick="setLang('zh')">中</button><button class="lang-btn" onclick="setLang('ja')">JP</button><button class="lang-btn" onclick="setLang('de')">DE</button></div><button class="btn-sm" onclick="window.location.href='/admin'" id="btn-admin" style="display:none">⚙ Admin</button>
+    <button class="btn-sm" onclick="openLadderEditor()" id="btn-ladder-editor" title="Mở Ladder Editor">✏ <span data-i18n="ladderEditor">Ladder Editor</span></button>
+    <button class="btn-sm danger" onclick="logout()">⏻</button>
+  </div>
+</header>
+
+<div class="app-layout">
+  <div class="left-panel">
+    <div class="tabs">
+      <div class="tab active" id="lt-form" onclick="ls('form')">🔧 <span data-i18n="tabCreate">Tạo CT</span></div>
+      <div class="tab" id="lt-hist" onclick="ls('hist')">📁 <span data-i18n="tabHistory">Lịch sử</span></div>
+      <div class="tab" id="lt-chat" onclick="ls('chat')">💬 <span data-i18n="tabChat">Chat</span></div>
+    </div>
+
+    <div id="lp-form" class="scroll-area">
+      <div id="upgrade-wrap" style="display:none;">
+        <div class="upgrade-banner">
+          <span data-i18n="upgradeMsg">⚠ Gói Free giới hạn 10 lần/tháng</span>
+          <button class="btn-upgrade" data-i18n="upgradeBtn" onclick="alert(T('upgradeAlert'))">Nâng cấp</button>
+        </div>
+      </div>
+      <div class="fg">
+        <div class="fl" data-i18n="progType">Loại chương trình</div>
+        <select class="sel" id="prog-type" onchange="onProgTypeChange(this.value)">
+          <option value="">-- Chọn hoặc mô tả bên dưới --</option>
+          <option value="motor_start_stop">Motor Start/Stop (Self-holding)</option>
+          <option value="motor_forward_reverse">Motor Thuận/Nghịch</option>
+          <option value="conveyor">Băng tải (Conveyor)</option>
+          <option value="timer_on">Timer ON Delay (TON)</option>
+          <option value="timer_off">Timer OFF Delay (TOF)</option>
+          <option value="counter_up">Counter CTU</option>
+          <option value="interlocking">Interlocking</option>
+          <option value="pump_level">Bơm theo mức</option>
+          <option value="traffic_light">Đèn giao thông</option>
+          <option value="alarm">Hệ thống báo động</option>
+          <option value="custom">Tùy chỉnh</option>
+        </select>
+      </div>
+      <div class="fg">
+        <div class="fl" data-i18n="brandLabel">Hãng PLC</div>
+        <div class="plc-brand-btns" id="plc-brand-btns">
+          <button class="brand-btn active" onclick="setBrand('siemens')" id="brand-siemens">
+            <span class="brand-icon">🔷</span> Siemens S7
+          </button>
+          <button class="brand-btn" onclick="setBrand('mitsubishi')" id="brand-mitsubishi">
+            <span class="brand-icon">🔴</span> Mitsubishi
+          </button>
+          <button class="brand-btn" onclick="setBrand('ab')" id="brand-ab">
+            <span class="brand-icon">🟡</span> Allen Bradley
+          </button>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="fg"><div class="fl" data-i18n="cpuLabel">CPU</div>
+          <select class="sel" id="cpu">
+            <optgroup label="Siemens S7" class="og-siemens">
+              <option value="S7-1200 (1214C)">S7-1200 (1214C)</option>
+              <option value="S7-1500 (1511)">S7-1500 (1511)</option>
+              <option value="S7-300 (315-2DP)">S7-300 (315-2DP)</option>
+              <option value="S7-400 (414-3)">S7-400 (414-3)</option>
+            </optgroup>
+            <optgroup label="Mitsubishi" class="og-mitsubishi" style="display:none">
+              <option value="FX3U">MELSEC FX3U</option>
+              <option value="FX5U">MELSEC FX5U</option>
+              <option value="Q03UDE">MELSEC Q03UDE</option>
+              <option value="iQ-R08">MELSEC iQ-R08</option>
+            </optgroup>
+            <optgroup label="Allen Bradley" class="og-ab" style="display:none">
+              <option value="MicroLogix 1100">MicroLogix 1100</option>
+              <option value="CompactLogix 5380">CompactLogix 5380</option>
+              <option value="ControlLogix 5580">ControlLogix 5580</option>
+              <option value="PLC-5">PLC-5</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="fg"><div class="fl" data-i18n="blockLabel">Block / Program</div>
+          <select class="sel" id="block">
+            <optgroup label="Siemens S7" class="og-siemens">
+              <option value="OB1 – Main">OB1 – Main</option>
+              <option value="FC – Function">FC – Function</option>
+              <option value="FB – Function Block">FB – Function Block</option>
+              <option value="OB30 – Cyclic">OB30 – Cyclic</option>
+            </optgroup>
+            <optgroup label="Mitsubishi" class="og-mitsubishi" style="display:none">
+              <option value="Main Program">Main Program</option>
+              <option value="Subroutine">Subroutine (P)</option>
+              <option value="Interrupt">Interrupt (I)</option>
+            </optgroup>
+            <optgroup label="Allen Bradley" class="og-ab" style="display:none">
+              <option value="MainRoutine">MainRoutine</option>
+              <option value="SubRoutine">SubRoutine</option>
+              <option value="Program Task">Program Task</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+      <div class="fg">
+        <div class="fl" data-i18n="descLabel">Mô tả yêu cầu</div>
+        <textarea class="tarea" id="req" placeholder="Ví dụ: Điều khiển motor 3 pha. Nhấn START (I0.0) → motor chạy và tự duy trì. Nhấn STOP (I0.1) hoặc OL (I0.2) → dừng. Đèn báo RUN (Q0.1)."></textarea>
+      </div>
+      <div class="fg">
+        <div class="fl" data-i18n="ioTable">Bảng I/O</div>
+        <div class="io-wrap">
+          <div class="io-head"><span>Tag</span><span data-i18n="colAddr">Địa chỉ</span><span data-i18n="colType">Loại</span><span></span></div>
+          <div id="io-rows"></div>
+          <button class="badd" id="btn-add-io" onclick="addIO()">+ <span data-i18n="addIO">Thêm I/O</span></button>
+        </div>
+      </div>
+      <button class="btn-gen" id="btn-gen" onclick="generate()">
+        <div class="spinner"></div><span class="btn-text" data-i18n="btnGenerate">⚡ Tạo Ladder Diagram</span>
+      </button>
+    </div>
+
+    <!-- History pane -->
+    <div id="lp-hist" class="hist-pane">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <span style="font-size:11px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;" data-i18n="histTitle">Lịch sử chương trình</span>
+        <button class="btn-sm" id="btn-reload-hist" onclick="loadHistory()">↻ <span data-i18n="reload">Tải lại</span></button>
+      </div>
+      <div id="hist-list"><div data-empty style="text-align:center;color:var(--text-dim);padding:40px;font-size:13px;">...</div></div>
+    </div>
+
+    <!-- Chat pane -->
+    <div id="lp-chat" class="chat-wrap">
+      <div class="chat-msgs" id="chat-msgs">
+        <div class="msg ai"><div class="ava">AI</div>
+          <div class="bubble">Xin chào! Tôi là trợ lý PLC chuyên về <strong>Siemens S7 / TIA Portal</strong>.<br>Hỏi tôi về: Ladder, SCL, STL, Timer, Counter, cấu hình HW, debug... 🔧</div>
+        </div>
+      </div>
+      <div class="chat-bar">
+        <textarea class="chat-inp" id="chat-inp" placeholder="Hỏi về PLC Siemens… (Enter gửi)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"></textarea>
+        <button class="bsend" id="btn-send" onclick="sendChat()">➤</button>
+      </div>
+    </div>
+
+      <!-- KB fixed section at bottom of left panel -->
+      <div id="lp-kb-section" style="border-top:1px solid var(--border);flex-shrink:0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px 4px;cursor:pointer;" onclick="toggleKbSection()">
+          <span style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--text-dim);text-transform:uppercase;">📚 Knowledge Base</span>
+          <span id="kb-toggle-ic" style="font-size:10px;color:var(--text-dim);">▲</span>
+        </div>
+        <div id="lp-kb" style="padding:0 8px 8px;">
+          <div class="kb-drop" id="kb-drop" style="padding:10px;margin-bottom:6px;">
+            <input type="file" id="kb-file-input" accept=".pdf" multiple onchange="kbHandleFiles(this.files)"/>
+            <div style="font-size:11px;color:var(--accent);font-weight:700;text-align:center;">📄 DROP PDF / CLICK TO UPLOAD</div>
+          </div>
+          <div id="kb-list" class="kb-list" style="max-height:120px;overflow-y:auto;">
+            <div class="kb-empty">Chưa có tài liệu. Upload PDF để AI học.</div>
+          </div>
+          <div id="kb-prog-types" style="display:none;padding:4px 0;max-height:100px;overflow-y:auto;"></div>
+        </div>
+      </div>
+    </div>
+
+  <!-- Right output -->
+  <button class="collapse-btn" id="collapse-btn" onclick="togglePanel()" title="Thu gọn panel"><svg width="8" height="14" viewBox="0 0 8 14"><polyline class="collapse-btn-icon" points="6,1 2,7 6,13"/></svg></button>
+  <div class="right-panel">
+    <div class="out-tabs">
+      <div style="display:flex;">
+        <div class="tab active" id="rt-ladder" onclick="rs('ladder')">📊 <span data-i18n="tabLadder">Ladder</span></div>
+        <div class="tab" id="rt-code" onclick="rs('code')">📝 <span data-i18n="tabSCL">SCL</span></div>
+        <div class="tab" id="rt-info" onclick="rs('info')">📋 <span data-i18n="tabIO">I/O</span></div>
+        <div class="tab" id="rt-edit" onclick="toggleEditMode()" style="color:#f0a500;">✏ Edit</div>
+      </div>
+      <div class="out-actions">
+        <button class="btn-sim" id="btn-sim" onclick="toggleSim()" title="Mô phỏng Ladder Diagram">▶ SIM</button>
+        <button class="ba save" onclick="saveToHistory()">💾 <span data-i18n="btnSave">Lưu</span></button>
+        <button class="ba" id="btn-template" onclick="saveAsTemplate()" title="Lưu vào thư viện Program Type">📌 Template</button>
+        <button class="ba" onclick="copyCode()">📋 <span data-i18n="btnCopy">Copy</span></button>
+        <button class="ba tia" id="btn-scl" onclick="exportSCL()">⬇ .scl</button>
+        <button class="ba awl" id="btn-awl" onclick="exportAWL()">⬇ .awl</button>
+        <button class="ba gx"  id="btn-gx"  onclick="exportGX()">⬇ .gx</button>
+        <button class="ba rstxt" id="btn-rs" onclick="exportRS()">⬇ .L5X</button>
+        <button class="ba pdf" onclick="exportPDF()">⬇ PDF</button>
+      </div>
+    </div>
+
+    <div id="sim-toolbar" class="sim-toolbar">
+      <span style="font-size:11px;font-weight:700;color:var(--text-dim);letter-spacing:1px;">⚡ SIMULATION</span>
+      <div id="sim-mem" style="display:flex;flex-wrap:wrap;gap:4px;flex:1;overflow-x:auto;"></div>
+      <div class="sim-hint">Click tiếp điểm để toggle ON/OFF</div>
+      <button class="btn-sim running" onclick="toggleSim()">■ STOP</button>
+    </div>
+    <div id="rp-ladder" class="ladder-canvas">
+      <div class="empty-s" id="empty-s"><div class="empty-ic">⚡</div><p data-i18n="emptyLadder">Ladder Diagram IEC 61131-3 sẽ hiển thị ở đây</p></div>
+      <div id="ladder-out"></div>
+    </div>
+    <!-- Edit Mode Overlay -->
+    <div id="edit-panel" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+      <div id="edit-toolbar" style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:rgba(240,165,0,.06);border-bottom:1.5px solid rgba(240,165,0,.3);flex-shrink:0;flex-wrap:wrap;">
+        <span style="font-size:10px;font-weight:700;color:#f0a500;letter-spacing:1px;">✏ EDIT MODE</span>
+        <button class="edit-tbtn" onclick="editAddRung()">+ Rung</button>
+        <button class="edit-tbtn" onclick="editUndo()" id="edit-undo-btn">↩ Undo</button>
+        <button class="edit-tbtn" onclick="editRedo()" id="edit-redo-btn">↪ Redo</button>
+        <div style="width:1px;height:18px;background:var(--border);margin:0 2px;"></div>
+        <span style="font-size:9px;color:var(--text-dim);">Drag palette → rung | Click element để chỉnh</span>
+        <div style="flex:1"></div>
+        <button class="edit-tbtn" style="border-color:#00994d;color:#00994d;" onclick="applyEditChanges()">✓ Áp dụng</button>
+        <button class="edit-tbtn" onclick="toggleEditMode()">✕ Đóng</button>
+      </div>
+      <div style="display:flex;flex:1;overflow:hidden;">
+        <!-- Element Palette — same as Ladder Editor -->
+        <div id="edit-palette" style="width:108px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;background:var(--bg2);">
+          <div class="edit-pal-grid">
+            <div style="grid-column:1/-1;font-size:9px;color:var(--text-dim);letter-spacing:1px;padding:4px 2px 2px;text-transform:uppercase;">Contacts</div>
+            <div class="edit-pal-item" draggable="true" ondragstart="palDragStart(event,'NO')" ondblclick="palClickAdd(\'NO\')" title="Drag vào rung hoặc Double-click để thêm">
+              <svg viewBox="0 0 54 40" style="width:44px;height:30px"><line x1="0" y1="20" x2="14" y2="20" stroke="var(--iec-line)" stroke-width="2"/><line x1="14" y1="8" x2="14" y2="32" stroke="var(--iec-contact)" stroke-width="2.5"/><line x1="40" y1="8" x2="40" y2="32" stroke="var(--iec-contact)" stroke-width="2.5"/><line x1="40" y1="20" x2="54" y2="20" stroke="var(--iec-line)" stroke-width="2"/></svg>
+              <span>NO</span>
+            </div>
+            <div class="edit-pal-item" draggable="true" ondragstart="palDragStart(event,'NC')" ondblclick="palClickAdd(\'NC\')" title="Drag vào rung hoặc Double-click để thêm">
+              <svg viewBox="0 0 54 40" style="width:44px;height:30px"><line x1="0" y1="20" x2="14" y2="20" stroke="var(--iec-line)" stroke-width="2"/><line x1="14" y1="8" x2="14" y2="32" stroke="var(--iec-nc)" stroke-width="2.5"/><line x1="40" y1="8" x2="40" y2="32" stroke="var(--iec-nc)" stroke-width="2.5"/><line x1="14" y1="28" x2="40" y2="12" stroke="var(--iec-nc)" stroke-width="2"/><line x1="40" y1="20" x2="54" y2="20" stroke="var(--iec-line)" stroke-width="2"/></svg>
+              <span>NC</span>
+            </div>
+            <div class="edit-pal-item" draggable="true" ondragstart="palDragStart(event,'COIL_MEM')" ondblclick="palClickAdd(\'COIL_MEM\')" title="Drag vào rung hoặc Double-click để thêm">
+              <svg viewBox="0 0 54 40" style="width:44px;height:30px"><line x1="0" y1="20" x2="14" y2="20" stroke="var(--iec-line)" stroke-width="2"/><line x1="14" y1="8" x2="14" y2="32" stroke="var(--iec-contact)" stroke-width="2.5"/><line x1="40" y1="8" x2="40" y2="32" stroke="var(--iec-contact)" stroke-width="2.5"/><rect x="21" y="15" width="12" height="10" fill="none" stroke="var(--iec-contact)" stroke-width="1.5"/><line x1="40" y1="20" x2="54" y2="20" stroke="var(--iec-line)" stroke-width="2"/></svg>
+              <span>MEM</span>
+            </div>
+            <div style="grid-column:1/-1;font-size:9px;color:var(--text-dim);letter-spacing:1px;padding:6px 2px 2px;text-transform:uppercase;">Outputs</div>
+            <div class="edit-pal-item" draggable="true" ondragstart="palDragStart(event,'COIL')" ondblclick="palClickAdd(\'COIL\')" title="Drag vào rung hoặc Double-click để thêm">
+              <svg viewBox="0 0 54 40" style="width:44px;height:30px"><line x1="0" y1="20" x2="14" y2="20" stroke="var(--iec-line)" stroke-width="2"/><path d="M14,8 A13,13 0 0,0 14,32" fill="none" stroke="var(--iec-coil)" stroke-width="2.5"/><path d="M40,8 A13,13 0 0,1 40,32" fill="none" stroke="var(--iec-coil)" stroke-width="2.5"/><line x1="40" y1="20" x2="54" y2="20" stroke="var(--iec-line)" stroke-width="2"/></svg>
+              <span>COIL</span>
+            </div>
+            <div class="edit-pal-item" draggable="true" ondragstart="palDragStart(event,'SET')" ondblclick="palClickAdd(\'SET\')" title="Drag vào rung hoặc Double-click để thêm">
+              <svg viewBox="0 0 54 40" style="width:44px;height:30px"><line x1="0" y1="20" x2="14" y2="20" stroke="var(--iec-line)" stroke-width="2"/><path d="M14,8 A13,13 0 0,0 14,32" fill="none" stroke="var(--iec-coil-set)" stroke-width="2.5"/><path d="M40,8 A13,13 0 0,1 40,32" fill="none" stroke="var(--iec-coil-set)" stroke-width="2.5"/><text x="27" y="24" text-anchor="middle" font-size="11" fill="var(--iec-coil-set)" font-weight="bold">S</text><line x1="40" y1="20" x2="54" y2="20" stroke="var(--iec-line)" stroke-width="2"/></svg>
+              <span>SET</span>
+            </div>
+            <div class="edit-pal-item" draggable="true" ondragstart="palDragStart(event,'RESET')" ondblclick="palClickAdd(\'RESET\')" title="Drag vào rung hoặc Double-click để thêm">
+              <svg viewBox="0 0 54 40" style="width:44px;height:30px"><line x1="0" y1="20" x2="14" y2="20" stroke="var(--iec-line)" stroke-width="2"/><path d="M14,8 A13,13 0 0,0 14,32" fill="none" stroke="var(--iec-coil-reset)" stroke-width="2.5"/><path d="M40,8 A13,13 0 0,1 40,32" fill="none" stroke="var(--iec-coil-reset)" stroke-width="2.5"/><text x="27" y="24" text-anchor="middle" font-size="11" fill="var(--iec-coil-reset)" font-weight="bold">R</text><line x1="40" y1="20" x2="54" y2="20" stroke="var(--iec-line)" stroke-width="2"/></svg>
+              <span>RST</span>
+            </div>
+            <div class="edit-pal-item" draggable="true" ondragstart="palDragStart(event,'TON')" ondblclick="palClickAdd(\'TON\')" title="Drag vào rung hoặc Double-click để thêm">
+              <svg viewBox="0 0 54 40" style="width:44px;height:30px"><rect x="2" y="4" width="50" height="32" rx="3" fill="var(--bg3)" stroke="var(--iec-timer)" stroke-width="2"/><text x="27" y="16" text-anchor="middle" font-size="9" fill="var(--iec-timer)" font-weight="bold">TON</text><line x1="2" y1="20" x2="52" y2="20" stroke="var(--iec-timer)" stroke-width=".5" opacity=".4"/><text x="27" y="30" text-anchor="middle" font-size="7" fill="var(--iec-timer)" opacity=".6">T#5S</text></svg>
+              <span>TON</span>
+            </div>
+            <div class="edit-pal-item" draggable="true" ondragstart="palDragStart(event,'TOF')" ondblclick="palClickAdd(\'TOF\')" title="Drag vào rung hoặc Double-click để thêm">
+              <svg viewBox="0 0 54 40" style="width:44px;height:30px"><rect x="2" y="4" width="50" height="32" rx="3" fill="var(--bg3)" stroke="var(--iec-timer)" stroke-width="2"/><text x="27" y="16" text-anchor="middle" font-size="9" fill="var(--iec-timer)" font-weight="bold">TOF</text><line x1="2" y1="20" x2="52" y2="20" stroke="var(--iec-timer)" stroke-width=".5" opacity=".4"/><text x="27" y="30" text-anchor="middle" font-size="7" fill="var(--iec-timer)" opacity=".6">T#5S</text></svg>
+              <span>TOF</span>
+            </div>
+            <div class="edit-pal-item" draggable="true" ondragstart="palDragStart(event,'CTU')" ondblclick="palClickAdd(\'CTU\')" title="Drag vào rung hoặc Double-click để thêm">
+              <svg viewBox="0 0 54 40" style="width:44px;height:30px"><rect x="2" y="4" width="50" height="32" rx="3" fill="var(--bg3)" stroke="var(--iec-counter)" stroke-width="2"/><text x="27" y="16" text-anchor="middle" font-size="9" fill="var(--iec-counter)" font-weight="bold">CTU</text><line x1="2" y1="20" x2="52" y2="20" stroke="var(--iec-counter)" stroke-width=".5" opacity=".4"/><text x="27" y="30" text-anchor="middle" font-size="7" fill="var(--iec-counter)" opacity=".6">PV:10</text></svg>
+              <span>CTU</span>
+            </div>
+          </div>
+        </div>
+        <!-- Editable Rungs -->
+        <div id="edit-canvas" style="flex:1;overflow-y:auto;padding:8px;"></div>
+        <!-- Properties Panel -->
+        <div id="edit-props" style="width:180px;flex-shrink:0;border-left:1px solid var(--border);overflow-y:auto;padding:8px;background:var(--bg2);font-size:11px;">
+          <div style="color:var(--text-dim);text-align:center;padding-top:20px;font-size:10px;">Click element<br>để chỉnh sửa</div>
+        </div>
+      </div>
+    </div>
+    <div id="rp-code" class="code-pane"><pre class="code-block" id="code-out">// SCL code...</pre></div>
+    <div id="rp-info" class="info-pane"><div id="info-out" style="font-size:13px;color:var(--text-dim);">...</div></div>
+  </div>
+</div>
+
+<!-- Import Guide Modal -->
+<div class="modal-overlay" id="modal-import" style="display:none;" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h2 id="modal-title" data-i18n="modalTitle">📥 Hướng dẫn Import vào TIA Portal</h2>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+const BAPI = window.location.origin + '/api';
+// ── Collapse left panel ──
+function togglePanel(){
+  const layout = document.querySelector('.app-layout');
+  const btn    = document.getElementById('collapse-btn');
+  const isCollapsed = layout.classList.toggle('collapsed');
+  btn.title = isCollapsed ? 'Mở rộng panel' : 'Thu gọn panel';
+  localStorage.setItem('plc_panel_collapsed', isCollapsed ? '1' : '0');
+}
+// Restore panel state — default OPEN
+setTimeout(()=>{
+  if(localStorage.getItem('plc_panel_collapsed')==='1'){
+    document.querySelector('.app-layout').classList.add('collapsed');
+  }
+}, 30);
+
+let token = localStorage.getItem('plc_token');
+let currentUser = JSON.parse(localStorage.getItem('plc_user')||'{}');
+let lastProg = null;
+const chatHist = [];
+
+// ══════════════════════════════════════════════
+// i18n – Multi-language support
+// ══════════════════════════════════════════════
+const LANGS = {
+  vi: {
+    tabCreate:'Tạo CT', tabHistory:'Lịch sử', tabChat:'Chat',
+    tabLadder:'Ladder', tabSCL:'SCL', tabIO:'I/O',
+    progType:'Loại chương trình', descLabel:'Mô tả yêu cầu',
+    ioTable:'Bảng I/O', colAddr:'Địa chỉ', colType:'Loại',
+    addIO:'Thêm I/O', btnGenerate:'⚡ Tạo Ladder Diagram',
+    btnSave:'Lưu', btnCopy:'Copy',
+    histTitle:'Lịch sử chương trình', reload:'Tải lại',
+    emptyLadder:'Ladder Diagram IEC 61131-3 sẽ hiển thị ở đây',
+    usageSuffix:'lần tháng này', ladderEditor:'Ladder Editor',
+    modalTitle:'📥 Hướng dẫn Import vào TIA Portal',
+    upgradeMsg:'⚠ Gói Free giới hạn 10 lần/tháng', upgradeBtn:'Nâng cấp',
+    upgradeAlert:'Liên hệ admin để nâng cấp gói Pro!',
+    histEmpty:'Chưa có chương trình nào được lưu',
+    noProgSave:'Chưa có chương trình để lưu!',
+    noProgExp:'Chưa có chương trình!',
+    savedOK:'✓ Đã lưu!', copiedOK:'✓ Copy!',
+    deletConfirm:'Xóa chương trình này?',
+    loadErr:'Lỗi tải chương trình',
+    ioOverview:'📋 Tổng quan', ioList:'🔌 Danh sách I/O', ioNotes:'⚠ Lưu ý',
+    chatPlaceholder:'Hỏi về PLC Siemens… (Enter gửi)',
+    reqPlaceholder:'Ví dụ: Điều khiển motor 3 pha. Nhấn START (I0.0) → motor chạy và tự duy trì. Nhấn STOP (I0.1) → dừng.',
+    descLabelFull:'Mô tả yêu cầu',
+    ioTagCol:'Tag', ioAddrCol:'Địa chỉ', ioTypeCol:'Loại', ioDescCol:'Mô tả',
+    chatWelcome:'Xin chào! Tôi là trợ lý PLC chuyên về <strong>Siemens S7 / TIA Portal</strong>.<br>Hỏi tôi về: Ladder, SCL, STL, Timer, Counter, cấu hình HW, debug... 🔧',
+    optNone:'-- Chọn hoặc mô tả bên dưới --', optCustom:'Tùy chỉnh',
+    optMotorFwd:'Motor Thuận/Nghịch', optConveyor:'Băng tải (Conveyor)',
+    optPump:'Bơm theo mức', optTraffic:'Đèn giao thông',
+    optAlarm:'Hệ thống báo động',
+  },
+  en: {
+    tabCreate:'Create', tabHistory:'History', tabChat:'Chat',
+    tabLadder:'Ladder', tabSCL:'SCL', tabIO:'I/O',
+    progType:'Program Type', descLabel:'Description',
+    ioTable:'I/O Table', colAddr:'Address', colType:'Type',
+    addIO:'Add I/O', btnGenerate:'⚡ Generate Ladder Diagram',
+    btnSave:'Save', btnCopy:'Copy',
+    histTitle:'Program History', reload:'Refresh',
+    emptyLadder:'Ladder Diagram IEC 61131-3 will appear here',
+    usageSuffix:'times this month', ladderEditor:'Ladder Editor',
+    modalTitle:'📥 Import Guide for TIA Portal',
+    upgradeMsg:'⚠ Free plan limited to 10 times/month', upgradeBtn:'Upgrade',
+    upgradeAlert:'Contact admin to upgrade to Pro!',
+    histEmpty:'No saved programs yet',
+    noProgSave:'No program to save!',
+    noProgExp:'No program available!',
+    savedOK:'✓ Saved!', copiedOK:'✓ Copied!',
+    deletConfirm:'Delete this program?',
+    loadErr:'Error loading program',
+    ioOverview:'📋 Overview', ioList:'🔌 I/O List', ioNotes:'⚠ Notes',
+    chatPlaceholder:'Ask about PLC Siemens… (Enter to send)',
+    reqPlaceholder:'Example: 3-phase motor control. Press START (I0.0) → motor runs and self-holds. Press STOP (I0.1) → stop.',
+    descLabelFull:'Requirement Description',
+    ioTagCol:'Tag', ioAddrCol:'Address', ioTypeCol:'Type', ioDescCol:'Description',
+    chatWelcome:'Hello! I am a PLC assistant specializing in <strong>Siemens S7 / TIA Portal</strong>.<br>Ask me about: Ladder, SCL, STL, Timer, Counter, HW config, debug... 🔧',
+    optNone:'-- Select or describe below --', optCustom:'Custom',
+    optMotorFwd:'Motor Forward/Reverse', optConveyor:'Conveyor Belt',
+    optPump:'Level-based Pump', optTraffic:'Traffic Light',
+    optAlarm:'Alarm System',
+  },
+  zh: {
+    tabCreate:'新建', tabHistory:'历史', tabChat:'聊天',
+    tabLadder:'梯形图', tabSCL:'SCL', tabIO:'I/O',
+    progType:'程序类型', descLabel:'需求描述',
+    ioTable:'I/O 表', colAddr:'地址', colType:'类型',
+    addIO:'添加 I/O', btnGenerate:'⚡ 生成梯形图',
+    btnSave:'保存', btnCopy:'复制',
+    histTitle:'程序历史', reload:'刷新',
+    emptyLadder:'IEC 61131-3 梯形图将在此显示',
+    usageSuffix:'次/本月', ladderEditor:'梯形图编辑器',
+    modalTitle:'📥 导入 TIA Portal 指南',
+    upgradeMsg:'⚠ 免费计划每月限制10次', upgradeBtn:'升级',
+    upgradeAlert:'请联系管理员升级到 Pro 计划！',
+    histEmpty:'暂无已保存程序',
+    noProgSave:'没有程序可保存！',
+    noProgExp:'暂无程序！',
+    savedOK:'✓ 已保存！', copiedOK:'✓ 已复制！',
+    deletConfirm:'删除此程序？',
+    loadErr:'加载程序出错',
+    ioOverview:'📋 概览', ioList:'🔌 I/O 列表', ioNotes:'⚠ 注意事项',
+    chatPlaceholder:'询问西门子PLC问题… (回车发送)',
+    reqPlaceholder:'示例：3相电机控制。按START(I0.0)→电机运行并自保持。按STOP(I0.1)→停止。',
+    descLabelFull:'需求描述',
+    ioTagCol:'标签', ioAddrCol:'地址', ioTypeCol:'类型', ioDescCol:'说明',
+    chatWelcome:'你好！我是专注于 <strong>西门子 S7 / TIA Portal</strong> 的PLC助手。<br>请询问：梯形图、SCL、STL、定时器、计数器、硬件配置、调试... 🔧',
+    optNone:'-- 选择或在下方描述 --', optCustom:'自定义',
+    optMotorFwd:'电机正反转', optConveyor:'传送带',
+    optPump:'液位泵控制', optTraffic:'交通信号灯',
+    optAlarm:'报警系统',
+  },
+  ja: {
+    tabCreate:'作成', tabHistory:'履歴', tabChat:'チャット',
+    tabLadder:'ラダー', tabSCL:'SCL', tabIO:'I/O',
+    progType:'プログラム種別', descLabel:'要件説明',
+    ioTable:'I/O テーブル', colAddr:'アドレス', colType:'種類',
+    addIO:'I/O 追加', btnGenerate:'⚡ ラダー図を生成',
+    btnSave:'保存', btnCopy:'コピー',
+    histTitle:'プログラム履歴', reload:'更新',
+    emptyLadder:'IEC 61131-3 ラダー図がここに表示されます',
+    usageSuffix:'回/今月', ladderEditor:'ラダーエディタ',
+    modalTitle:'📥 TIA Portal インポートガイド',
+    upgradeMsg:'⚠ 無料プランは月10回まで', upgradeBtn:'アップグレード',
+    upgradeAlert:'Proプランへのアップグレードは管理者にお問い合わせください！',
+    histEmpty:'保存されたプログラムはありません',
+    noProgSave:'保存するプログラムがありません！',
+    noProgExp:'プログラムがありません！',
+    savedOK:'✓ 保存済み！', copiedOK:'✓ コピー済み！',
+    deletConfirm:'このプログラムを削除しますか？',
+    loadErr:'プログラムの読み込みエラー',
+    ioOverview:'📋 概要', ioList:'🔌 I/Oリスト', ioNotes:'⚠ 注意事項',
+    chatPlaceholder:'シーメンスPLCについて質問… (Enterで送信)',
+    reqPlaceholder:'例：3相モーター制御。START(I0.0)→モーター起動・自己保持。STOP(I0.1)→停止。',
+    descLabelFull:'要件説明',
+    ioTagCol:'タグ', ioAddrCol:'アドレス', ioTypeCol:'種類', ioDescCol:'説明',
+    chatWelcome:'こんにちは！<strong>シーメンス S7 / TIA Portal</strong> 専門のPLCアシスタントです。<br>ラダー図、SCL、STL、タイマー、カウンター、HW設定、デバッグについてお聞きください... 🔧',
+    optNone:'-- 選択または下に説明 --', optCustom:'カスタム',
+    optMotorFwd:'モーター正逆転', optConveyor:'コンベヤベルト',
+    optPump:'液位ポンプ制御', optTraffic:'交通信号',
+    optAlarm:'警報システム',
+  },
+  de: {
+    tabCreate:'Erstellen', tabHistory:'Verlauf', tabChat:'Chat',
+    tabLadder:'Leiter', tabSCL:'SCL', tabIO:'I/O',
+    progType:'Programmtyp', descLabel:'Beschreibung',
+    ioTable:'I/O-Tabelle', colAddr:'Adresse', colType:'Typ',
+    addIO:'I/O hinzufügen', btnGenerate:'⚡ Leiterdiagramm erstellen',
+    btnSave:'Speichern', btnCopy:'Kopieren',
+    histTitle:'Programmverlauf', reload:'Aktualisieren',
+    emptyLadder:'IEC 61131-3 Leiterdiagramm erscheint hier',
+    usageSuffix:'mal diesen Monat', ladderEditor:'Leiter-Editor',
+    modalTitle:'📥 TIA Portal Import-Anleitung',
+    upgradeMsg:'⚠ Kostenloses Paket: 10 mal/Monat begrenzt', upgradeBtn:'Upgraden',
+    upgradeAlert:'Kontaktieren Sie den Admin für ein Pro-Upgrade!',
+    histEmpty:'Keine gespeicherten Programme vorhanden',
+    noProgSave:'Kein Programm zum Speichern!',
+    noProgExp:'Kein Programm vorhanden!',
+    savedOK:'✓ Gespeichert!', copiedOK:'✓ Kopiert!',
+    deletConfirm:'Dieses Programm löschen?',
+    loadErr:'Fehler beim Laden des Programms',
+    ioOverview:'📋 Übersicht', ioList:'🔌 I/O-Liste', ioNotes:'⚠ Hinweise',
+    chatPlaceholder:'Siemens PLC-Fragen… (Enter zum Senden)',
+    reqPlaceholder:'Beispiel: 3-Phasen-Motorsteuerung. START(I0.0) drücken → Motor läuft und hält sich selbst. STOP(I0.1) → Stopp.',
+    descLabelFull:'Anforderungsbeschreibung',
+    ioTagCol:'Tag', ioAddrCol:'Adresse', ioTypeCol:'Typ', ioDescCol:'Beschreibung',
+    chatWelcome:'Hallo! Ich bin ein PLC-Assistent spezialisiert auf <strong>Siemens S7 / TIA Portal</strong>.<br>Fragen Sie mich über: Leiter, SCL, STL, Timer, Zähler, HW-Konfiguration, Debug... 🔧',
+    optNone:'-- Auswählen oder unten beschreiben --', optCustom:'Benutzerdefiniert',
+    optMotorFwd:'Motor Vorwärts/Rückwärts', optConveyor:'Förderband',
+    optPump:'Pegelabhängige Pumpe', optTraffic:'Ampelsteuerung',
+    optAlarm:'Alarmsystem',
+  }
+};
+
+let currentLang = localStorage.getItem('plc_lang') || 'vi';
+
+function T(key){ return (LANGS[currentLang]||LANGS.vi)[key] || (LANGS.vi[key]) || key; }
+
+function applyLang(){
+  // Update all data-i18n elements
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key = el.getAttribute('data-i18n');
+    if(key === 'btnGenerate') el.innerHTML = T(key);
+    else el.textContent = T(key);
+  });
+  // Placeholders
+  const chatInp = document.getElementById('chat-inp');
+  if(chatInp) chatInp.placeholder = T('chatPlaceholder');
+  const req = document.getElementById('req');
+  if(req) req.placeholder = T('reqPlaceholder');
+  // Select options in prog-type
+  const pt = document.getElementById('prog-type');
+  if(pt){
+    const opts = pt.querySelectorAll('option');
+    if(opts[0])  opts[0].textContent  = T('optNone');
+    if(opts[2])  opts[2].textContent  = T('optMotorFwd');
+    if(opts[3])  opts[3].textContent  = T('optConveyor');
+    if(opts[8])  opts[8].textContent  = T('optPump');
+    if(opts[9])  opts[9].textContent  = T('optTraffic');
+    if(opts[10]) opts[10].textContent = T('optAlarm');
+    if(opts[11]) opts[11].textContent = T('optCustom');
+  }
+  // Active lang button — match by onclick attribute
+  document.querySelectorAll('.lang-btn').forEach(b=>{
+    const onclick = b.getAttribute('onclick')||'';
+    const match = onclick.match(/setLang\('(\w+)'\)/);
+    b.classList.toggle('active', match && match[1]===currentLang);
+  });
+  // Re-render usage pill (keep numbers, update suffix)
+  const pill = document.getElementById('usage-pill');
+  if(pill && pill.dataset.usage){
+    pill.innerHTML = `${pill.dataset.usage} <span data-i18n="usageSuffix">${T('usageSuffix')}</span>`;
+  }
+  // Update html lang attr
+  document.documentElement.lang = currentLang;
+  // Re-render history empty state if visible
+  const hl = document.getElementById('hist-list');
+  if(hl && hl.querySelector('[data-empty]')) hl.innerHTML=`<div data-empty style="text-align:center;color:var(--text-dim);padding:40px;font-size:13px;">${T('histEmpty')}</div>`;
+}
+
+function setLang(lang){
+  currentLang = lang;
+  localStorage.setItem('plc_lang', lang);
+  applyLang();
+  renderProgTypes(); // cập nhật KB program types theo ngôn ngữ mới
+}
+
+// ── PLC Brand Management ──
+// Luôn mặc định Siemens khi khởi động (không restore từ localStorage)
+let currentBrand = 'siemens';
+
+const BRAND_CONFIG = {
+  siemens: {
+    color:'#0077cc', name:'Siemens S7', std:'IEC 61131-3 / TIA Portal',
+    addressExamples: {input:'I0.0', output:'Q0.0', memory:'M0.0', timer:'T1', counter:'C1'},
+    codeLabel:'SCL', exportExt:'.scl / .awl',
+    chatSystem:'You are a Siemens S7/TIA Portal PLC expert. Answer about Ladder, SCL, STL, Timer, Counter, HW config.',
+  },
+  mitsubishi: {
+    color:'#cc2222', name:'Mitsubishi MELSEC', std:'IEC 61131-3 / GX Works',
+    addressExamples: {input:'X0', output:'Y0', memory:'M0', timer:'T0', counter:'C0'},
+    codeLabel:'ST/IL', exportExt:'.gx',
+    chatSystem:'You are a Mitsubishi MELSEC PLC expert (FX3U/FX5U/Q/iQ-R series). Answer about Ladder, ST, IL, GX Works2/3, devices X/Y/M/T/C/D.',
+  },
+  ab: {
+    color:'#cc8800', name:'Allen Bradley', std:'IEC 61131-3 / Studio 5000',
+    addressExamples: {input:'I:0/0', output:'O:0/0', memory:'B3/0', timer:'T4:0', counter:'C5:0'},
+    codeLabel:'ST/LD', exportExt:'.L5X',
+    chatSystem:'You are an Allen Bradley PLC expert (MicroLogix/CompactLogix/ControlLogix). Answer about Ladder, Structured Text, Studio 5000, RSLogix, tags and routines.',
+  }
+};
+
+function setBrand(brand){
+  currentBrand = brand;
+  localStorage.setItem('plc_brand', brand);
+  // Update active button
+  ['siemens','mitsubishi','ab'].forEach(b=>{
+    document.getElementById('brand-'+b).classList.toggle('active', b===brand);
+  });
+  const cfg = BRAND_CONFIG[brand];
+  if(!cfg) return;
+  // Show/hide CPU options
+  document.querySelectorAll('#cpu optgroup, #block optgroup').forEach(og=>{
+    og.style.display = og.classList.contains('og-'+brand) ? '' : 'none';
+  });
+  // Select first visible option in CPU and Block
+  ['cpu','block'].forEach(id=>{
+    const sel = document.getElementById(id);
+    if(!sel) return;
+    const og = sel.querySelector('.og-'+brand);
+    if(og && og.options && og.options[0]) sel.value = og.options[0].value;
+  });
+  // Update code tab label
+  const tabSCL = document.querySelector('#rt-code span[data-i18n="tabSCL"]');
+  if(tabSCL) tabSCL.textContent = cfg.codeLabel;
+  // Show/hide export buttons — guard against null
+  const btnScl = document.getElementById('btn-scl');
+  const btnAwl = document.getElementById('btn-awl');
+  const btnGx  = document.getElementById('btn-gx');
+  const btnRs  = document.getElementById('btn-rs');
+  if(btnScl) btnScl.style.display = brand==='siemens' ? '' : 'none';
+  if(btnAwl) btnAwl.style.display = brand==='siemens' ? '' : 'none';
+  if(btnGx)  btnGx.style.display  = brand==='mitsubishi' ? '' : 'none';
+  if(btnRs)  btnRs.style.display  = brand==='ab' ? '' : 'none';
+  // Update logo badge
+  const badge = document.querySelector('.logo-badge');
+  if(badge){ badge.textContent = brand==='siemens'?'S7':brand==='mitsubishi'?'FX':'AB'; badge.style.background=cfg.color; }
+}
+
+// Init brand on load
+setTimeout(()=>setBrand(currentBrand), 50);
+
+
+function toggleKbSection(){
+  const kb = document.getElementById('lp-kb');
+  const ic = document.getElementById('kb-toggle-ic');
+  const open = kb.style.display !== 'none';
+  kb.style.display = open ? 'none' : 'block';
+  ic.textContent = open ? '▼' : '▲';
+  localStorage.setItem('plc_kb_open', open ? '0' : '1');
+}
+// Restore KB section state
+setTimeout(()=>{
+  if(localStorage.getItem('plc_kb_open')==='0'){
+    const kb=document.getElementById('lp-kb');
+    const ic=document.getElementById('kb-toggle-ic');
+    if(kb){ kb.style.display='none'; if(ic) ic.textContent='▼'; }
+  }
+  renderKbList();
+}, 80);
+if(!token) window.location.href='/';
+
+// Load user info
+async function loadUser() {
+  // Hiện ngay từ localStorage cache (tránh flash "--/--")
+  const cached = localStorage.getItem('plc_user');
+  if(cached){
+    try{
+      const uc = JSON.parse(cached);
+      const pill = document.getElementById('usage-pill');
+      if(pill){
+        const ut = `${uc.monthly_usage||0} / ${uc.monthly_limit||10}`;
+        pill.dataset.usage = ut;
+        pill.innerHTML = `${ut} <span data-i18n="usageSuffix">${T('usageSuffix')}</span>`;
+      }
+      if(uc.email) document.getElementById('user-email').textContent = uc.email;
+      if(uc.plan)  document.getElementById('user-plan').innerHTML = `<span class="plan-${uc.plan}">${(uc.plan_label||uc.plan).toUpperCase()}</span>`;
+      if(uc.is_admin) document.getElementById('btn-admin').style.display='block';
+    }catch(e){}
+  }
+  try {
+    const res = await fetch(`${BAPI}/auth/me`, {headers:{'Authorization':'Bearer '+token}});
+    if(res.status===401){logout();return;}
+    const u = await res.json();
+    currentUser = u;
+    localStorage.setItem('plc_user', JSON.stringify(u));
+    document.getElementById('user-email').textContent = u.email;
+    document.getElementById('user-plan').innerHTML = `<span class="plan-${u.plan}">${(u.plan_label||u.plan).toUpperCase()}</span>`;
+    const pill = document.getElementById('usage-pill');
+    const usageText = `${u.monthly_usage||0} / ${u.monthly_limit||10}`;
+    pill.dataset.usage = usageText;
+    pill.innerHTML = `${usageText} <span data-i18n="usageSuffix">${T('usageSuffix')}</span>`;
+    if(u.is_admin) document.getElementById('btn-admin').style.display='block';
+    if(u.plan==='free' && (u.monthly_usage||0) >= 7) document.getElementById('upgrade-wrap').style.display='block';
+  } catch(e){ console.warn('loadUser error:', e); }
+}
+loadUser();
+// Apply language on load
+setTimeout(()=>applyLang(), 0);
+
+function logout(){localStorage.removeItem('plc_token');localStorage.removeItem('plc_user');window.location.href='/';}
+
+function ls(t){
+  ['form','hist','chat'].forEach(x=>{
+    const lp=document.getElementById('lp-'+x);
+    const lt=document.getElementById('lt-'+x);
+    if(lp) lp.style.display='none';
+    if(lt) lt.className='tab'+(x===t?' active':'');
+  });
+  if(t==='hist') loadHistory();
+  document.getElementById('lp-form').style.display = t==='form'?'flex':'none';
+  document.getElementById('lp-hist').style.display = t==='hist'?'block':'none';
+  document.getElementById('lp-chat').style.display = t==='chat'?'flex':'none';
+}
+
+// ══════════════════════════════════════════════════════
+// KNOWLEDGE BASE — PDF Upload & Training
+// ══════════════════════════════════════════════════════
+let kbDocs = JSON.parse(localStorage.getItem('plc_kb_docs')||'[]');
+// kbDocs: [{id, name, size, pages, text, brand, createdAt}]
+
+function saveKb(){ localStorage.setItem('plc_kb_docs', JSON.stringify(kbDocs)); }
+
+async function kbHandleFiles(files){
+  for(const file of [...files]){
+    if(!file.name.toLowerCase().endsWith('.pdf')){ alert('Chỉ hỗ trợ file PDF!'); continue; }
+    await kbProcessPDF(file);
+  }
+  renderKbList();
+}
+
+async function kbProcessPDF(file){
+  const docId = Date.now();
+  const doc = {
+    id: docId, name: file.name,
+    size: (file.size/1024/1024).toFixed(1)+' MB',
+    status: 'processing', brand: currentBrand,
+    summary: '', symbols: [], createdAt: new Date().toLocaleDateString()
+  };
+  kbDocs.push(doc); saveKb(); renderKbList();
+
+  try{
+    // ── Bước 1: Load PDF.js nếu chưa có ──
+    if(!window.pdfjsLib){
+      await new Promise((res,rej)=>{
+        const s=document.createElement('script');
+        s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        s.onload=res; s.onerror=rej; document.head.appendChild(s);
+      });
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc=
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    // ── Bước 2: Extract text từ tối đa 10 trang, giới hạn 3000 ký tự ──
+    const arrayBuf = await file.arrayBuffer();
+    const pdf = await window.pdfjsLib.getDocument({data: arrayBuf}).promise;
+    const maxPages = Math.min(pdf.numPages, 10);
+    let extractedText = '';
+    for(let i=1; i<=maxPages; i++){
+      const page = await pdf.getPage(i);
+      const tc   = await page.getTextContent();
+      extractedText += tc.items.map(it=>it.str).join(' ') + '\n';
+    }
+    extractedText = extractedText.replace(/\s+/g,' ').trim().substring(0, 3000);
+
+    if(extractedText.length < 50){
+      throw new Error('Không thể đọc nội dung PDF. Hãy dùng PDF dạng text (không phải scan).');
+    }
+
+    // ── Bước 3: Gửi qua /chat với max_tokens thấp ──
+    const kbPrompt = `Analyze PLC manual. Return JSON only (no markdown):
+{"brand":"siemens|mitsubishi|ab|general","plc_type":"model","summary":"1 sentence","symbols":[{"name":"x","type":"contact|coil|timer|counter|function","description":"y","syntax":"z"}],"addressing":"rules","special_rules":["r1"],"program_types":[{"value":"key","labels":{"vi":"VI","en":"EN","zh":"ZH","ja":"JA","de":"DE"},"description":"d"}]}
+Extract 10 symbols, 5 program_types.
+TEXT: ${extractedText}`;
+
+    // Dùng /chat (max_tokens=1000, nhẹ hơn /generate)
+    const response = await fetch(`${BAPI}/plc/chat`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({
+        messages:[{role:'user', content: kbPrompt}],
+        system:'You are a PLC expert. Return ONLY valid JSON, no explanation.'
+      })
+    });
+
+    if(!response.ok){
+      const errBody = await response.text().catch(()=>'');
+      let errMsg = `Server lỗi ${response.status}`;
+      try { errMsg = JSON.parse(errBody).detail || errMsg; } catch(e){}
+      console.error('KB API error:', response.status, errBody);
+      // Cập nhật error message chi tiết vào doc trước khi throw
+      const eIdx = kbDocs.findIndex(d=>d.id===docId);
+      if(eIdx>=0) kbDocs[eIdx].error = errMsg;
+      throw new Error(errMsg);
+    }
+
+    const data = await response.json();
+    const txt  = (data.content||[]).map(c=>c.text||'').join('');
+    let info   = {};
+    try{
+      const clean = txt.replace(/```json\n?|```/g,'').trim();
+      info = JSON.parse(clean);
+    }catch(e){ info = {summary: txt.substring(0,200), symbols:[], brand:currentBrand}; }
+
+    const idx = kbDocs.findIndex(d=>d.id===docId);
+    if(idx>=0){
+      kbDocs[idx] = {...kbDocs[idx], ...info, status:'ready',
+        name: file.name, size: (file.size/1024/1024).toFixed(1)+' MB',
+        pages: pdf.numPages, createdAt: new Date().toLocaleDateString()};
+    }
+    syncProgTypes(); // Thêm program types từ KB vào dropdown
+
+  }catch(err){
+    const idx = kbDocs.findIndex(d=>d.id===docId);
+    if(idx>=0){ kbDocs[idx].status='error'; kbDocs[idx].error=err.message; }
+  }
+  saveKb(); renderKbList();
+}
+
+function renderKbList(){
+  const list = document.getElementById('kb-list');
+  if(!list) return;
+  if(!kbDocs.length){
+    list.innerHTML='<div class="kb-empty">📭 Chưa có tài liệu nào.<br>Upload PDF manual PLC để cải thiện độ chính xác.</div>';
+  } else {
+    const brandColor={'siemens':'#0077cc','mitsubishi':'#cc2222','ab':'#cc8800','general':'#4a6070'};
+    const brandLabel={'siemens':'S7','mitsubishi':'FX','ab':'AB','general':'PLC'};
+    const statusColor={'ready':'var(--contact-no)','processing':'var(--yellow)','error':'var(--red)'};
+    const statusText={'ready':'✓ Sẵn sàng','processing':'⏳ Đang xử lý...','error':'❌ Lỗi'};
+    list.innerHTML = kbDocs.map(doc=>`
+      <div class="kb-item">
+        <div style="width:28px;height:28px;border-radius:6px;background:${brandColor[doc.brand]||'#4a6070'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <span style="font-size:9px;font-weight:800;color:#fff;font-family:'Rajdhani',sans-serif;letter-spacing:0.5px;">${brandLabel[doc.brand]||'PLC'}</span>
+        </div>
+        <div class="kb-item-info">
+          <div class="kb-item-name">${doc.name}</div>
+          <div class="kb-item-meta">${doc.size} · ${doc.plc_type||doc.brand||''} · ${doc.createdAt}</div>
+          ${doc.summary?`<div class="kb-item-meta" style="margin-top:3px;color:var(--text-dim)">${doc.summary.substring(0,80)}...</div>`:''}
+          ${doc.symbols?.length?`<div class="kb-item-meta" style="color:var(--accent)">${doc.symbols.length} symbols · ${doc.program_types?.length||0} loại CT</div>`:''}
+          ${doc.error?`<div class="kb-item-meta" style="color:var(--red)">${doc.error}</div>`:''}
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+          <span class="kb-status ${doc.status}" style="color:${statusColor[doc.status]||'var(--text-dim)'}">${statusText[doc.status]||doc.status}</span>
+          <button class="kb-item-del" onclick="kbDelete(${doc.id})" title="Xóa PDF (loại CT vẫn giữ)">🗑</button>
+        </div>
+      </div>`).join('');
+  }
+
+  // Hiện danh sách program types đã lưu
+  const ptSection = document.getElementById('kb-prog-types');
+  if(ptSection) renderKbProgTypesPanel();
+}
+
+function kbDelete(id){
+  if(!confirm('Xóa tài liệu này khỏi Knowledge Base?')) return;
+  kbDocs = kbDocs.filter(d=>d.id!==id);
+  saveKb(); renderKbList(); syncProgTypes();
+}
+
+function getKbContext(){
+  const relevant = kbDocs.filter(d=>d.status==='ready'&&(d.brand==='general'||d.brand===currentBrand));
+  if(!relevant.length) return '';
+  let ctx = '\n\n═══ KNOWLEDGE BASE (Tài liệu PLC đã upload — ƯU TIÊN ÁP DỤNG) ═══\n';
+  relevant.forEach(doc=>{
+    ctx += `\n📄 ${doc.name} (${doc.plc_type||doc.brand})\n`;
+    if(doc.addressing) ctx += `QUY TẮC ĐỊA CHỈ: ${doc.addressing}\n`;
+    if(doc.symbols?.length){
+      ctx += `KÝ HIỆU/LỆNH CHUẨN (${doc.symbols.length} symbols):\n`;
+      doc.symbols.slice(0,25).forEach(sym=>{
+        ctx += `  • ${sym.name} [${sym.type}]: ${sym.description}`;
+        if(sym.syntax) ctx += ` → VÍ DỤ: ${sym.syntax}`;
+        ctx += '\n';
+      });
+    }
+    if(doc.special_rules?.length){
+      ctx += `QUY TẮC ĐẶC BIỆT BẮT BUỘC:\n`;
+      doc.special_rules.forEach(r=>{ ctx += `  ⚠ ${r}\n`; });
+    }
+  });
+  ctx += '\nYÊU CẦU: Sử dụng ĐÚNG ký hiệu, cú pháp, địa chỉ từ tài liệu trên. Không dùng chuẩn khác.\n═══════════════════════════════════════════';
+  return ctx;
+}
+
+// ── Sync KB program types → dropdown ──
+const BUILT_IN_VALUES = new Set(['','motor_start_stop','motor_forward_reverse','conveyor',
+  'timer_on','timer_off','counter_up','interlocking','pump_level','traffic_light','alarm','custom']);
+
+// ── Persistent Program Types Library (độc lập với KB docs) ──
+let savedProgTypes = JSON.parse(localStorage.getItem('plc_prog_types')||'[]');
+// savedProgTypes: [{value, label, description, brand, source}]
+
+function saveProgTypes(){ localStorage.setItem('plc_prog_types', JSON.stringify(savedProgTypes)); }
+
+function syncProgTypes(){
+  const sel = document.getElementById('prog-type');
+  if(!sel) return;
+
+  // Merge new types từ KB docs vào savedProgTypes (không xóa cũ)
+  kbDocs.filter(d=>d.status==='ready' && d.program_types?.length).forEach(doc=>{
+    doc.program_types.forEach(pt=>{
+      if(!BUILT_IN_VALUES.has(pt.value) && !savedProgTypes.find(x=>x.value===pt.value)){
+        savedProgTypes.push({...pt, brand: doc.brand||'general', source: doc.plc_type||doc.name});
+      }
+    });
+  });
+  saveProgTypes();
+  renderProgTypes();
+}
+
+function getProgTypeLabel(pt){
+  // Lấy label theo ngôn ngữ hiện tại, fallback theo thứ tự
+  if(pt.labels && typeof pt.labels === 'object'){
+    return pt.labels[currentLang] || pt.labels['en'] || pt.labels['vi'] || pt.label || pt.value;
+  }
+  return pt.label || pt.value;
+}
+
+function renderProgTypes(){
+  const sel = document.getElementById('prog-type');
+  if(!sel) return;
+
+  // Remove all old KB optgroups
+  sel.querySelectorAll('optgroup[data-kb]').forEach(g=>g.remove());
+
+  if(!savedProgTypes.length) return;
+
+  // Group by brand
+  const brands = [...new Set(savedProgTypes.map(p=>p.brand||'general'))];
+  const brandNames = {siemens:'Siemens S7', mitsubishi:'Mitsubishi', ab:'Allen Bradley', general:'General'};
+  brands.forEach(brand=>{
+    const types = savedProgTypes.filter(p=>(p.brand||'general')===brand);
+    if(!types.length) return;
+    const grp = document.createElement('optgroup');
+    grp.label = `📚 KB — ${brandNames[brand]||brand}`;
+    grp.setAttribute('data-kb','1');
+    types.forEach(pt=>{
+      const opt = document.createElement('option');
+      opt.value = pt.value;
+      opt.textContent = getProgTypeLabel(pt);
+      opt.title = pt.description||'';
+      grp.appendChild(opt);
+    });
+    const customOpt = sel.querySelector('option[value="custom"]');
+    if(customOpt) sel.insertBefore(grp, customOpt);
+    else sel.appendChild(grp);
+  });
+
+  // Update prog-types panel labels too
+  renderKbProgTypesPanel();
+}
+
+function renderKbProgTypesPanel(){
+  const ptSection = document.getElementById('kb-prog-types');
+  if(!ptSection) return;
+  if(!savedProgTypes.length){ ptSection.style.display='none'; return; }
+  ptSection.style.display='block';
+  ptSection.innerHTML = `<div style="font-size:10px;font-weight:700;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;padding:4px 0 6px;">📋 Loại CT đã lưu (${savedProgTypes.length})</div>`
+    + savedProgTypes.map(pt=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:11px;color:var(--text)">${getProgTypeLabel(pt)}</span>
+        <button onclick="deleteProgType('${pt.value}')" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:11px;padding:1px 4px;" title="Xóa">✕</button>
+      </div>`).join('');
+}
+
+function deleteProgType(value){
+  savedProgTypes = savedProgTypes.filter(p=>p.value!==value);
+  saveProgTypes();
+  renderProgTypes();
+}
+
+// Run on load
+setTimeout(()=>{ syncProgTypes(); renderProgTypes(); }, 120);
+document.addEventListener('DOMContentLoaded', ()=>{
+  const drop = document.getElementById('kb-drop');
+  if(!drop) return;
+  drop.addEventListener('dragover', e=>{ e.preventDefault(); drop.classList.add('drag-over'); });
+  drop.addEventListener('dragleave', ()=>drop.classList.remove('drag-over'));
+  drop.addEventListener('drop', e=>{ e.preventDefault(); drop.classList.remove('drag-over'); kbHandleFiles(e.dataTransfer.files); });
+});
+
+function rs(t){
+  ['ladder','code','info'].forEach(x=>{
+    const el=document.getElementById('rp-'+x);
+    el.style.display=x===t?(x==='ladder'?'flex':'block'):'none';
+    if(x==='ladder')el.style.flexDirection='column';
+    document.getElementById('rt-'+x).className='tab'+(x===t?' active':'');
+  });
+}
+
+function addIO(){
+  const row=document.createElement('div');row.className='io-row';
+  row.innerHTML='<input placeholder="TAG"><input placeholder="I0.0"><select><option>Input</option><option>Output</option><option>Memory</option><option>Timer</option><option>Counter</option></select><button class="brm" onclick="rmIO(this)">✕</button>';
+  document.getElementById('io-rows').appendChild(row);
+}
+function rmIO(b){b.closest('.io-row').remove();}
+function getIO(){
+  return Array.from(document.querySelectorAll('#io-rows .io-row')).map(r=>{
+    const ii=r.querySelectorAll('input'),s=r.querySelector('select');
+    return ii[0].value?`${ii[0].value}|${ii[1].value}|${s.value}`:null;
+  }).filter(Boolean).join('\n');
+}
+
+async function generate(){
+  const desc=document.getElementById('req').value.trim();
+  const pt=document.getElementById('prog-type').value;
+  if(!desc&&!pt){alert('Chọn loại chương trình hoặc mô tả yêu cầu!');return;}
+  const btn=document.getElementById('btn-gen');
+  btn.classList.add('loading');btn.disabled=true;
+  const cfg = BRAND_CONFIG[currentBrand];
+  const kbContext = getKbContext();
+  const kbActive = kbDocs.filter(d=>d.status==='ready'&&(d.brand==='general'||d.brand===currentBrand));
+  // Hiện badge KB trên nút generate
+  const btnText = document.querySelector('.btn-text');
+  if(btnText) btnText.innerHTML = kbActive.length>0
+    ? `⚡ ${T('btnGenerate').replace('⚡ ','')} <span style="font-size:9px;background:rgba(255,255,255,0.2);padding:1px 6px;border-radius:8px;margin-left:4px;">📚 ${kbActive.length} KB</span>`
+    : T('btnGenerate');
+  const brandRules = currentBrand==='mitsubishi' ? `
+• Dùng địa chỉ Mitsubishi: Input=X0-X7, Output=Y0-Y7, Memory=M0+, Timer=T0+(K ticks), Counter=C0+, Data=D0+
+• Timer syntax: OUT T0 K50 (=5s với 100ms base), Counter: OUT C0 K10
+• Export code dùng Structured Text hoặc Instruction List chuẩn GX Works3
+• scl_code: viết bằng ST (Structured Text) hoặc mnemonic IL chuẩn Mitsubishi` :
+    currentBrand==='ab' ? `
+• Dùng địa chỉ Allen Bradley: Input=I:0/x, Output=O:0/x (MicroLogix) hoặc BOOL tag (Logix)
+• Timer: TON Timer, CTU Counter chuẩn IEC với .DN, .ACC, .PRE bits
+• Export code dùng Structured Text chuẩn Studio 5000 / RSLogix 5000
+• scl_code: viết bằng ST chuẩn Rockwell/Studio 5000` : `
+• Dùng địa chỉ Siemens: Input=I0.x, Output=Q0.x, Memory=M0.x, Timer=TON/TOF, Counter=CTU
+• SCL syntax chuẩn TIA Portal V15+
+• scl_code: viết bằng SCL chuẩn Siemens`;
+
+  const langNames = {vi:'Vietnamese (Tiếng Việt)',en:'English',zh:'Chinese (中文)',ja:'Japanese (日本語)',de:'German (Deutsch)'};
+  const outputLang = langNames[currentLang]||'English';
+
+  const prompt=`You are a ${cfg.name} PLC programming expert, standard ${cfg.std}.
+
+⚠ LANGUAGE RULE: All text fields in the JSON response (title, description, comment, desc, notes) MUST be written in ${outputLang}. Do NOT use any other language.
+
+═══ REQUIREMENTS ═══
+Program type: ${pt||'As described'}
+CPU: ${document.getElementById('cpu').value}
+Block: ${document.getElementById('block').value}
+Description: ${desc||pt}
+I/O: ${getIO()||'(determine automatically)'}
+
+═══ DESIGN RULES ═══
+• Analyze requirements carefully, design correct function.
+• Scale/calculation: use COIL_MEM + formula in comment.
+• Timer/Counter: use appropriate type.
+• branches = 2D array: each element = 1 PARALLEL branch, inside = series contacts.
+
+⚠ SELF-HOLDING STRUCTURE (motor/pump/conveyor):
+  CORRECT: branches=[ [START(NO)], [OUTPUT_CONTACT(NO)] ], postContacts=[STOP(NC)]
+  WRONG:   branches=[ [START(NO), STOP(NC)], [OUTPUT_CONTACT(NO), STOP(NC)] ]
+  → Never repeat same contact in each parallel branch → use postContacts instead
+
+⚠ TRAFFIC LIGHT / SEQUENTIAL TIMER — MANDATORY PATTERN:
+  Use CASCADING timers, NOT a single cycle timer:
+  - Rung 1: START(NO) self-hold → PHASE1_TIMER (TON, pt=phase1 duration)
+  - Rung 2: PHASE1_TIMER_Q(NO) → PHASE2_TIMER (TON, pt=phase2 duration)
+  - Rung 3: PHASE2_TIMER_Q(NO) → PHASE3_TIMER (TON, pt=phase3 duration)
+  - Rung 4: PHASE3_TIMER_Q(NO) → RESET rung (RESET PHASE1_TIMER start coil to loop)
+  - Output rungs: use timer Q bits (NO/NC) to control lights
+  NEVER use a single CYCLE_TIMER whose .Q activates phase timers — that creates deadlock.
+  Each phase timer starts IMMEDIATELY when previous phase timer is DONE (.Q=true).
+
+⚠ CONTACT GROUPING:
+  If 2+ parallel branches share the SAME contact → move to postContacts
+${brandRules}
+
+═══ REQUIRED JSON FORMAT (JSON only, no markdown) ═══
+{"title":"...","description":"...","rungs":[{"number":1,"comment":"rung description in ${outputLang}","branches":[[{"type":"NO","tag":"START_BTN","addr":"${cfg.addressExamples.input}"}],[{"type":"NO","tag":"MOTOR_RUN","addr":"${cfg.addressExamples.output}"}]],"postContacts":[{"type":"NC","tag":"STOP_BTN","addr":"${cfg.addressExamples.input.replace('0','1')}"}],"output":{"type":"COIL","tag":"MOTOR_RUN","addr":"${cfg.addressExamples.output}"}}],"scl_code":"// ${cfg.codeLabel} code...","io_list":[{"tag":"START_BTN","addr":"${cfg.addressExamples.input}","type":"Input","desc":"description in ${outputLang}"}],"notes":["note in ${outputLang}"]}
+
+postContacts = [] if no common contacts.
+contact: NO=normally open, NC=normally closed, COIL_MEM=internal/memory
+output: COIL, SET, RESET, TON(+pt), TOF(+pt), CTU(+pv)${kbContext}`;
+  try{
+    const res=await fetch(`${BAPI}/plc/generate`,{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({prompt})});
+    if(res.status===429){const d=await res.json();alert(d.detail);return;}
+    if(res.status===401){logout();return;}
+    if(!res.ok)throw new Error('Lỗi server');
+    const data=await res.json();
+    const txt=data.content.map(c=>c.text||'').join('');
+    lastProg=safeParseJSON(txt);
+    if(!lastProg)throw new Error('AI trả về dữ liệu không hợp lệ. Hãy thử lại.');
+    renderAll(lastProg);rs('ladder');
+    loadUser();
+  }catch(e){alert('Lỗi: '+e.message);}
+  finally{btn.classList.remove('loading');btn.disabled=false;}
+}
+
+function safeParseJSON(txt){
+  // Bước 1: bỏ markdown fences
+  let s=txt.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+  // Bước 2: tìm JSON object bắt đầu từ {
+  const start=s.indexOf('{');
+  if(start<0)return null;
+  s=s.slice(start);
+  // Bước 3: thử parse thẳng
+  try{return JSON.parse(s);}catch(e){}
+  // Bước 4: JSON bị cắt → tự đóng ngoặc
+  try{
+    // Tìm vị trí hợp lệ cuối cùng bằng cách đóng brackets mở
+    let depth=0,inStr=false,escape=false,lastValid=0;
+    for(let i=0;i<s.length;i++){
+      const c=s[i];
+      if(escape){escape=false;continue;}
+      if(c==='\\'&&inStr){escape=true;continue;}
+      if(c==='"'&&!escape){inStr=!inStr;}
+      if(!inStr){
+        if(c==='{'||c==='[')depth++;
+        else if(c==='}'||c===']'){depth--;if(depth===0){lastValid=i+1;break;}}
+      }
+    }
+    if(lastValid>0)return JSON.parse(s.slice(0,lastValid));
+    // Nếu JSON còn mở: cắt tại key cuối cùng hoàn chỉnh rồi đóng
+    const truncated=repairJSON(s);
+    return JSON.parse(truncated);
+  }catch(e2){return null;}
+}
+
+function repairJSON(s){
+  // Cắt tại dấu phẩy cuối cùng trước khi bị đứt, rồi đóng ngoặc
+  const stack=[];let inStr=false,escape=false,lastComma=-1;
+  for(let i=0;i<s.length;i++){
+    const c=s[i];
+    if(escape){escape=false;continue;}
+    if(c==='\\'&&inStr){escape=true;continue;}
+    if(c==='"'&&!escape){inStr=!inStr;continue;}
+    if(!inStr){
+      if(c==='{'||c==='[')stack.push(c);
+      else if(c==='}'||c===']')stack.pop();
+      else if(c===','&&stack.length<=2)lastComma=i;
+    }
+  }
+  let cut=lastComma>0?s.slice(0,lastComma):s;
+  // Đóng tất cả ngoặc còn mở
+  const opens=[...stack].reverse();
+  for(const o of opens)cut+=o==='{'?'}':']';
+  return cut;
+}
+
+// ── Ladder Renderer ──
+const R={CELL_W:100,CELL_H:72,RAIL_W:14,COIL_R:15,PAD_H:16,FONT_TAG:10,FONT_ADDR:9,
+  OUTPUT_W:34, // width of output symbol area
+  MIN_CONTACTS:4, // minimum contact slots to show (so even 1-contact rungs look full-width)
+};
+function renderAll(p){renderLadder(p);renderCode(p);renderInfo(p);}
+function renderLadder(p){
+  document.getElementById('empty-s').style.display='none';
+  const out=document.getElementById('ladder-out');out.innerHTML='';
+  const hdr=document.createElement('div');hdr.className='program-header';
+  hdr.innerHTML=`<div><div class="prog-title">${p.title}</div><div class="prog-meta" style="margin-top:3px;">${p.description}</div></div><div class="prog-meta">${document.getElementById('cpu').value} · ${document.getElementById('block').value}</div>`;
+  out.appendChild(hdr);
+
+  // ── Tính chiều rộng CHUẨN: mỗi rung có width riêng vừa đủ, không dư ──
+  const SLOT_MIN  = 86;
+  const POST_SLOT_W = 78;
+  const globalMaxPost = Math.max(
+    0,
+    ...p.rungs.map(r=>(r.postContacts||[]).length)
+  );
+  // FIXED_W dựa trên rung CÓ NHIỀU CONTACTS NHẤT → tất cả rungs dùng chung 1 width
+  const globalMaxC = Math.max(
+    R.MIN_CONTACTS,
+    ...p.rungs.map(r=>(r.branches||[]).reduce((m,b)=>Math.max(m,b.length),0))
+  );
+  const FIXED_W = R.RAIL_W*2 + 40 + globalMaxC*SLOT_MIN + globalMaxPost*POST_SLOT_W + R.OUTPUT_W + 60;
+
+  p.rungs.forEach((rung,i)=>{
+    const wrap=document.createElement('div');wrap.className='rung-wrap';wrap.style.animationDelay=(i*0.07)+'s';
+    const nc=document.createElement('div');nc.className='rung-nc';nc.innerHTML=`<div class="rung-nl">N${rung.number}</div>`;
+    const body=document.createElement('div');body.className='rung-body';
+    if(rung.comment){const cl=document.createElement('div');cl.className='rung-cl';cl.textContent='// '+rung.comment;body.appendChild(cl);}
+    const sw=document.createElement('div');sw.className='rung-sw';sw.innerHTML=buildRungSVG(rung,FIXED_W,globalMaxC,globalMaxPost);body.appendChild(sw);
+    wrap.appendChild(nc);wrap.appendChild(body);out.appendChild(wrap);
+  });
+}
+
+function buildRungSVG(rung, totalW, globalMaxC, globalMaxPost){
+  const branches=rung.branches||[];const output=rung.output||null;
+  const postC=rung.postContacts||[];
+  const maxC=branches.reduce((m,b)=>Math.max(m,b.length),0);
+  // Dùng globalMaxC để slot luôn đồng đều giữa các rung
+  const normC    = globalMaxC  || Math.max(maxC, 1);
+  const normPost = globalMaxPost|| 0;
+  const numB=branches.length;const hasP=numB>1;
+  const totalH=numB*R.CELL_H+R.PAD_H+6;
+  const isBigOut=output?.type==='TON'||output?.type==='TOF'||output?.type==='CTU';
+  const OUT_SYM_W=isBigOut?60:32;
+  const POST_SLOT=78; // width per postContact slot
+
+  const rrX    = totalW-R.RAIL_W;
+
+  // ── Layout ──
+  const SLOT_PX  = 86;
+
+  const VBAR_L   = R.RAIL_W + 8;
+  const sX       = hasP ? VBAR_L + 8 : R.RAIL_W + 4;
+  // VBAR_R dựa trên maxC của RUNG NÀY → compact, không dư
+  const thisMaxC = Math.max(maxC, 1);
+  const VBAR_R   = sX + thisMaxC * SLOT_PX;
+
+  // Output & postContacts: anchor từ phải (cố định)
+  const oRight     = rrX - R.RAIL_W - 16;
+  const oLeft      = oRight - OUT_SYM_W;
+  const postZoneW  = postC.length * POST_SLOT;  // chỉ zone thực tế của rung này
+  // postStartX: ngay sau VBAR_R + gap nhỏ, nhưng không vượt quá oLeft
+  const MIN_GAP    = 24;
+  const postStartX = postZoneW > 0
+    ? Math.min(VBAR_R + MIN_GAP, oLeft - 10 - postZoneW)
+    : oLeft - 10;
+
+  const slotW = SLOT_PX;
+  const mainY = R.PAD_H + R.CELL_H * 0.5;
+
+  let svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalW} ${totalH}" preserveAspectRatio="xMidYMid meet" style="display:block;width:100%;height:${totalH}px;background:#f7f7f7;">`;
+
+  // Grid dots
+  for(let gx=R.RAIL_W+20;gx<rrX;gx+=40)
+    for(let gy=R.PAD_H;gy<totalH-10;gy+=20)
+      svg+=`<circle cx="${gx}" cy="${gy}" r="1" fill="rgba(0,0,0,0.04)"/>`;
+
+  // L+ Rail
+  svg+=`<rect x="0" y="${R.PAD_H-10}" width="${R.RAIL_W}" height="${totalH-R.PAD_H+10}" fill="var(--iec-rail)" rx="2"/>`;
+  svg+=`<text x="${R.RAIL_W/2}" y="${Math.max(8, R.PAD_H-10)}" text-anchor="middle" font-size="8" fill="var(--iec-rail)" font-family="JetBrains Mono" font-weight="bold" opacity="0.8">L+</text>`;
+
+  // N Rail
+  svg+=`<rect x="${rrX}" y="${R.PAD_H-10}" width="${R.RAIL_W}" height="${totalH-R.PAD_H+10}" fill="var(--iec-rail)" rx="2"/>`;
+  svg+=`<text x="${rrX+R.RAIL_W/2}" y="${Math.max(8, R.PAD_H-10)}" text-anchor="middle" font-size="8" fill="var(--iec-rail)" font-family="JetBrains Mono" font-weight="bold" opacity="0.8">N</text>`;
+
+  // Dashed background wire full width
+  svg+=`<line x1="${R.RAIL_W}" y1="${mainY}" x2="${rrX}" y2="${mainY}" stroke="rgba(0,0,0,0.08)" stroke-width="1.5" stroke-dasharray="6,4"/>`;
+
+  // Parallel vertical bars
+  if(hasP){
+    const bB=R.PAD_H+(numB-1)*R.CELL_H+R.CELL_H*0.5;
+    svg+=`<line data-role="vbar" x1="${VBAR_L}" y1="${mainY}" x2="${VBAR_L}" y2="${bB}" stroke="var(--iec-line)" stroke-width="2.5"/>`;
+    svg+=`<line data-role="vbar" x1="${VBAR_R}" y1="${mainY}" x2="${VBAR_R}" y2="${bB}" stroke="var(--iec-line)" stroke-width="2.5"/>`;
+    svg+=`<line data-role="main" x1="${R.RAIL_W}" y1="${mainY}" x2="${VBAR_L}" y2="${mainY}" stroke="var(--iec-line)" stroke-width="2"/>`;
+  }
+
+  // Branch rows
+  branches.forEach((branch,bi)=>{
+    const bY=R.PAD_H+bi*R.CELL_H+R.CELL_H*0.5;
+    svg+=`<line data-bi="${bi}" x1="${sX}" y1="${bY}" x2="${VBAR_R}" y2="${bY}" stroke="rgba(0,0,0,0.06)" stroke-width="1.5" stroke-dasharray="4,4"/>`;
+    if(branch.length===0){
+      svg+=`<line data-bi="${bi}" x1="${sX}" y1="${bY}" x2="${VBAR_R}" y2="${bY}" stroke="var(--iec-line)" stroke-width="2"/>`;
+    } else {
+      const cxArr=branch.map((_,ci)=>sX+(ci+0.5)*slotW);
+      svg+=`<line data-bi="${bi}" x1="${sX}" y1="${bY}" x2="${cxArr[0]-14}" y2="${bY}" stroke="var(--iec-line)" stroke-width="2"/>`;
+      for(let ci=0;ci<cxArr.length-1;ci++)
+        svg+=`<line data-bi="${bi}" x1="${cxArr[ci]+14}" y1="${bY}" x2="${cxArr[ci+1]-14}" y2="${bY}" stroke="var(--iec-line)" stroke-width="2"/>`;
+      svg+=`<line data-bi="${bi}" x1="${cxArr[cxArr.length-1]+14}" y1="${bY}" x2="${VBAR_R}" y2="${bY}" stroke="var(--iec-line)" stroke-width="2"/>`;
+    }
+    branch.forEach((el,ci)=>{ svg+=drawContact(el,sX+(ci+0.5)*slotW,bY,ci,'branch'); });
+  });
+
+  // Gap wire VBAR_R → postStartX
+  if(!hasP){
+    svg+=`<line data-role="main" x1="${R.RAIL_W}" y1="${mainY}" x2="${sX}" y2="${mainY}" stroke="var(--iec-line)" stroke-width="2"/>`;
+  }
+  const gapStart = hasP ? VBAR_R : (branches[0]?.length>0 ? sX+branches[0].length*slotW : sX);
+  svg+=`<line data-role="main" x1="${gapStart}" y1="${mainY}" x2="${postStartX>gapStart?postStartX:oLeft}" y2="${mainY}" stroke="var(--iec-line)" stroke-width="2"/>`;
+
+  // postContacts zone
+  if(postC.length>0){
+    const cxArr=postC.map((_,i)=>postStartX+(i+0.5)*POST_SLOT);
+    svg+=`<line data-role="post" x1="${postStartX}" y1="${mainY}" x2="${cxArr[0]-14}" y2="${mainY}" stroke="var(--iec-line)" stroke-width="2"/>`;
+    for(let i=0;i<cxArr.length-1;i++)
+      svg+=`<line data-role="post" x1="${cxArr[i]+14}" y1="${mainY}" x2="${cxArr[i+1]-14}" y2="${mainY}" stroke="var(--iec-line)" stroke-width="2"/>`;
+    svg+=`<line data-role="post" x1="${cxArr[cxArr.length-1]+14}" y1="${mainY}" x2="${oLeft}" y2="${mainY}" stroke="var(--iec-line)" stroke-width="2"/>`;
+    postC.forEach((el,i)=>{ svg+=drawContact(el,cxArr[i],mainY,i,'post'); });
+  } else {
+    svg+=`<line data-role="post" x1="${postStartX}" y1="${mainY}" x2="${oLeft}" y2="${mainY}" stroke="var(--iec-line)" stroke-width="2"/>`;
+  }
+
+  // Output & wire to N
+  if(output) svg+=drawOutput(output,oLeft,mainY);
+  else svg+=`<line data-role="out" x1="${oLeft}" y1="${mainY}" x2="${rrX}" y2="${mainY}" stroke="var(--iec-line)" stroke-width="2"/>`;
+  if(output) svg+=`<line data-role="out" x1="${oRight}" y1="${mainY}" x2="${rrX}" y2="${mainY}" stroke="var(--iec-line)" stroke-width="2"/>`;
+
+  svg+='</svg>';return svg;
+}
+function drawContact(el,cx,cy,idx,role){
+  let s='';const tag=el.tag||'',addr=el.addr||'';
+  const isNO=el.type==='NO'||el.type==='COIL_MEM',isNC=el.type==='NC';
+  const color=isNO?'var(--iec-contact)':isNC?'var(--iec-nc)':'var(--iec-timer)';
+  const even=(idx||0)%2===0;
+  const tagY=even?cy-26:cy+36, addrY=even?cy+36:cy-26;
+  const dr=role?` data-role="${role}"`:'';
+  const dc=tag?` data-contact="${tag}"`:'';
+  s+=`<text x="${cx}" y="${tagY}" text-anchor="middle" font-size="${R.FONT_TAG}" fill="${color}" font-family="JetBrains Mono" font-weight="500">${tag}</text>`;
+  s+=`<text x="${cx}" y="${addrY}" text-anchor="middle" font-size="${R.FONT_ADDR}" fill="rgba(107,138,170,0.8)" font-family="JetBrains Mono">${addr}</text>`;
+  s+=`<line${dr} x1="${cx-32}" y1="${cy}" x2="${cx-15}" y2="${cy}" stroke="var(--iec-line)" stroke-width="2"/>`;
+  s+=`<line${dr} x1="${cx+15}" y1="${cy}" x2="${cx+32}" y2="${cy}" stroke="var(--iec-line)" stroke-width="2"/>`;
+  s+=`<line${dc} x1="${cx-14}" y1="${cy-14}" x2="${cx-14}" y2="${cy+14}" stroke="${color}" stroke-width="2.5" stroke-linecap="round"/>`;
+  s+=`<line${dc} x1="${cx+14}" y1="${cy-14}" x2="${cx+14}" y2="${cy+14}" stroke="${color}" stroke-width="2.5" stroke-linecap="round"/>`;
+  if(isNC)s+=`<line${dc} x1="${cx-14}" y1="${cy+10}" x2="${cx+14}" y2="${cy-10}" stroke="${color}" stroke-width="2" stroke-linecap="round"/>`;
+  if(el.type==='COIL_MEM')s+=`<rect x="${cx-5}" y="${cy-5}" width="10" height="10" fill="none" stroke="${color}" stroke-width="1.5" rx="1" opacity="0.7"/>`;
+  return s;
+}
+function drawOutput(el,x,cy){
+  let s='';const tag=el.tag||'',type=el.type||'COIL';
+  const color=type==='SET'?'var(--iec-coil-set)':type==='RESET'?'var(--iec-coil-reset)':type==='TON'||type==='TOF'?'var(--iec-timer)':type==='CTU'?'var(--iec-counter)':'var(--iec-coil)';
+  const cx=x+16;
+  const isMitsubishi = currentBrand==='mitsubishi';
+  const isAB = currentBrand==='ab';
+
+  s+=`<text x="${cx}" y="${cy-26}" text-anchor="middle" font-size="${R.FONT_TAG}" fill="${color}" font-family="JetBrains Mono" font-weight="500">${tag}</text>`;
+  // Mitsubishi timer/counter: addr được hiện bên trong coil + K value bên dưới → không hiện addr riêng
+  const skipAddr = isMitsubishi && (type==='TON'||type==='TOF'||type==='CTU');
+  if(!skipAddr)
+    s+=`<text x="${cx}" y="${cy+36}" text-anchor="middle" font-size="${R.FONT_ADDR}" fill="rgba(107,138,170,0.8)" font-family="JetBrains Mono">${el.addr||''}</text>`;
+
+  if(type==='COIL'||type==='SET'||type==='RESET'){
+    // IEC/tất cả brand: 2 dấu ngoặc đơn ( )
+    const r=13,sw=2.5;
+    s+=`<path d="M${cx-4},${cy-r} A${r},${r} 0 0,0 ${cx-4},${cy+r}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round"/>`;
+    s+=`<path d="M${cx+4},${cy-r} A${r},${r} 0 0,1 ${cx+4},${cy+r}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round"/>`;
+    const lbl=type==='SET'?'S':type==='RESET'?'R':'';
+    if(lbl)s+=`<text x="${cx}" y="${cy+4}" text-anchor="middle" font-size="11" fill="${color}" font-weight="bold" font-family="JetBrains Mono">${lbl}</text>`;
+
+  }else if(type==='TON'||type==='TOF'){
+    if(isMitsubishi){
+      const rawAddr = String(el.addr||'');
+      const timerDev = /^T\d/i.test(rawAddr) ? rawAddr : (el.tag||'T0').replace(/[^TtCc\d]/g,'').substring(0,4)||'T0';
+      let kNum = '50';
+      const rawPt = String(el.pt||'');
+      if(rawPt) kNum = rawPt.replace(/^K/i,'').replace(/T#/i,'').replace(/[Ss]$/,'').trim();
+      else if(/^K\d/i.test(rawAddr)) kNum = rawAddr.replace(/^K/i,'').trim();
+      const r=16, sw=2.5;
+      const timerTag = el.tag||timerDev;
+      // Coil paths — clickable
+      s+=`<path d="M${cx-5},${cy-r} A${r},${r} 0 0,0 ${cx-5},${cy+r}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" style="cursor:pointer" onclick="editTimerPT('${timerTag}')"/>`;
+      s+=`<path d="M${cx+5},${cy-r} A${r},${r} 0 0,1 ${cx+5},${cy+r}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" style="cursor:pointer" onclick="editTimerPT('${timerTag}')"/>`;
+      // Device name line 1
+      s+=`<text x="${cx}" y="${cy-3}" text-anchor="middle" font-size="9" fill="${color}" font-weight="700" font-family="JetBrains Mono" style="cursor:pointer" onclick="editTimerPT('${timerTag}')">${timerDev}</text>`;
+      // K value line 2 — clickable hint
+      s+=`<text x="${cx}" y="${cy+9}" text-anchor="middle" font-size="9" fill="${color}" font-family="JetBrains Mono"
+              id="pt-text-${timerTag}" style="cursor:pointer" onclick="editTimerPT('${timerTag}')">K${kNum}</text>`;
+      // Elapsed time (sim only)
+      s+=`<text x="${cx}" y="${cy+22}" text-anchor="middle" font-size="7" fill="#00cc55" font-family="JetBrains Mono"
+              id="sim-et-${timerTag}" style="display:none">0.0s</text>`;
+    } else {
+      // Siemens/AB: hộp chữ nhật chuẩn IEC — có thể click để chỉnh PT
+      const bw=56,bh=46;
+      const timerTag = el.tag||'T';
+      s+=`<rect x="${x}" y="${cy-bh/2}" width="${bw}" height="${bh}" fill="var(--bg3)" stroke="${color}" stroke-width="2" rx="3"
+             style="cursor:pointer" onclick="editTimerPT('${timerTag}')"/>`;
+      s+=`<text x="${x+bw/2}" y="${cy-bh/2+13}" text-anchor="middle" font-size="10" fill="${color}" font-weight="700" font-family="JetBrains Mono">${type}</text>`;
+      s+=`<line x1="${x}" y1="${cy-bh/2+16}" x2="${x+bw}" y2="${cy-bh/2+16}" stroke="${color}" stroke-width="1" opacity="0.4"/>`;
+      // PT line — editable hint
+      const ptText = el.pt||'T#5S';
+      s+=`<text x="${x+bw/2}" y="${cy+4}" text-anchor="middle" font-size="9" fill="rgba(179,157,219,0.9)" font-family="JetBrains Mono"
+              id="pt-text-${timerTag}" style="cursor:pointer" onclick="editTimerPT('${timerTag}')">PT:${ptText}</text>`;
+      // Elapsed time display (hidden until sim)
+      s+=`<text x="${x+bw/2}" y="${cy+16}" text-anchor="middle" font-size="8" fill="#00cc55" font-family="JetBrains Mono"
+              id="sim-et-${timerTag}" style="display:none">0.0s</text>`;
+    }
+
+  }else if(type==='CTU'){
+    if(isMitsubishi){
+      const rawAddrC = String(el.addr||'');
+      const cntDev = /^C\d/i.test(rawAddrC) ? rawAddrC : (el.tag||'C0').replace(/[^CcTt\d]/g,'').substring(0,4)||'C0';
+      const rawPv = String(el.pv!=null ? el.pv : '');
+      let kNumC = '10';
+      if(rawPv) kNumC = rawPv.replace(/^K/i,'').trim();
+      else if(/^K\d/i.test(rawAddrC)) kNumC = rawAddrC.replace(/^K/i,'').trim();
+      const r=16, sw=2.5;
+      const cntTag = el.tag||cntDev;
+      s+=`<path d="M${cx-5},${cy-r} A${r},${r} 0 0,0 ${cx-5},${cy+r}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" style="cursor:pointer" onclick="editTimerPT('${cntTag}')"/>`;
+      s+=`<path d="M${cx+5},${cy-r} A${r},${r} 0 0,1 ${cx+5},${cy+r}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" style="cursor:pointer" onclick="editTimerPT('${cntTag}')"/>`;
+      s+=`<text x="${cx}" y="${cy-3}" text-anchor="middle" font-size="9" fill="${color}" font-weight="700" font-family="JetBrains Mono" style="cursor:pointer" onclick="editTimerPT('${cntTag}')">${cntDev}</text>`;
+      s+=`<text x="${cx}" y="${cy+9}" text-anchor="middle" font-size="9" fill="${color}" font-family="JetBrains Mono"
+              id="pt-text-${cntTag}" style="cursor:pointer" onclick="editTimerPT('${cntTag}')">K${kNumC}</text>`;
+      s+=`<text x="${cx}" y="${cy+22}" text-anchor="middle" font-size="7" fill="#00cc55" font-family="JetBrains Mono"
+              id="sim-et-${cntTag}" style="display:none">0</text>`;
+    } else {
+      // Siemens/AB: hộp chữ nhật
+      const bw=56,bh=46;
+      s+=`<rect x="${x}" y="${cy-bh/2}" width="${bw}" height="${bh}" fill="var(--bg3)" stroke="${color}" stroke-width="2" rx="3"/>`;
+      s+=`<text x="${x+bw/2}" y="${cy-bh/2+13}" text-anchor="middle" font-size="10" fill="${color}" font-weight="700" font-family="JetBrains Mono">CTU</text>`;
+      s+=`<line x1="${x}" y1="${cy-bh/2+16}" x2="${x+bw}" y2="${cy-bh/2+16}" stroke="${color}" stroke-width="1" opacity="0.4"/>`;
+      if(el.pv!=null)s+=`<text x="${x+bw/2}" y="${cy+5}" text-anchor="middle" font-size="9" fill="rgba(128,203,196,0.9)" font-family="JetBrains Mono">PV:${el.pv}</text>`;
+    }
+  }
+  return s;
+}
+// ══════════════════════════════════════════════
+// SIMULATION ENGINE
+// ══════════════════════════════════════════════
+let simRunning = false;
+let simInterval = null;
+let simMemory = {};   // tag → boolean (contact state)
+let simOutputs = {};  // tag → boolean (coil state)
+let simTimers  = {};  // tag → {elapsed:ms, pt:ms, done:bool, wasEnabled:bool}
+const SIM_CYCLE = 100; // ms per scan cycle
+
+// ── Timer PT edit (click on timer box) ──
+function editTimerPT(tag){
+  if(simRunning){ alert('Dừng simulation trước khi chỉnh giá trị.'); return; }
+  if(!lastProg?.rungs) return;
+  for(const rung of lastProg.rungs){
+    const out = rung.output;
+    if(out && out.tag===tag && (out.type==='TON'||out.type==='TOF'||out.type==='CTU')){
+      const isMits = currentBrand==='mitsubishi';
+      if(out.type==='CTU'){
+        const cur = out.pv!=null ? (isMits?'K'+out.pv:String(out.pv)) : (isMits?'K10':'10');
+        const hint = isMits ? 'Nhập K value (ví dụ: K100, K9999)' : 'Nhập PV value (ví dụ: 10, 100)';
+        const val = prompt(`${hint}\n${tag}:`, cur);
+        if(val===null) return;
+        const clean = val.trim().toUpperCase().replace(/^K/,'');
+        out.pv = parseInt(clean)||10;
+      } else {
+        const cur = isMits
+          ? 'K'+(out.pt||'').replace(/^K/i,'')
+          : (out.pt||'T#5S');
+        const hint = isMits
+          ? 'Nhập K value (K30=3s, K300=30s, K3000=5min)\n(Timer FX base 100ms)'
+          : 'Nhập PT value (ví dụ: T#5S, T#30S, T#1M30S)';
+        const val = prompt(`${hint}\n${tag}:`, cur);
+        if(val===null) return;
+        const clean = val.trim();
+        out.pt = clean.toUpperCase().startsWith('K') ? clean.toUpperCase() : clean;
+      }
+      renderAll(lastProg);
+      return;
+    }
+  }
+}
+
+// ── Parse PT string → milliseconds ──
+function parsePT(pt){
+  if(!pt) return 5000;
+  const s = String(pt).trim().toUpperCase();
+
+  // Mitsubishi format: K30 = 30 × 100ms = 3s, K300 = 30s
+  if(/^K\d+$/.test(s)){
+    return parseInt(s.substring(1)) * 100; // 100ms per tick
+  }
+
+  // Siemens IEC format: T#5S, T#1M30S, T#500MS
+  const clean = s.replace(/^T#/,'');
+  let ms = 0;
+  const h    = clean.match(/(\d+)H/);       if(h)    ms += parseInt(h[1])    * 3600000;
+  const min  = clean.match(/(\d+)M(?!S)/);  if(min)  ms += parseInt(min[1])  * 60000;
+  const sec  = clean.match(/(\d+\.?\d*)S/); if(sec)  ms += parseFloat(sec[1])* 1000;
+  const msec = clean.match(/(\d+)MS/);      if(msec) ms += parseInt(msec[1]);
+
+  // Pure number fallback: assume seconds
+  if(ms===0){ const n=parseFloat(clean); if(!isNaN(n)) ms = n*1000; }
+
+  return ms || 5000;
+}
+
+// ══════════════════════════════════════════════
+// EDIT MODE ENGINE
+// ══════════════════════════════════════════════
+let editMode = false;
+let editProg = null;      // deep copy of lastProg being edited
+let editHistory = [];
+let editHistIdx = -1;
+let editSelected = null;  // {ri, bi, ei, isOutput}
+let palDragType = null;
+
+function toggleEditMode(){
+  if(!lastProg){ alert('Tạo chương trình trước khi chỉnh sửa!'); return; }
+  editMode = !editMode;
+  const ladderOut = document.getElementById('rp-ladder');
+  const editPanel = document.getElementById('edit-panel');
+  const editTab   = document.getElementById('rt-edit');
+  if(editMode){
+    // Deep copy prog để edit
+    editProg = JSON.parse(JSON.stringify(lastProg));
+    editHistory = [JSON.stringify(editProg)];
+    editHistIdx = 0;
+    ladderOut.style.display = 'none';
+    editPanel.style.display = 'flex';
+    editTab.classList.add('active');
+    renderEditCanvas();
+  } else {
+    ladderOut.style.display = '';
+    editPanel.style.display = 'none';
+    editTab.classList.remove('active');
+  }
+}
+
+function editSaveHistory(){
+  editHistory = editHistory.slice(0, editHistIdx+1);
+  editHistory.push(JSON.stringify(editProg));
+  editHistIdx++;
+  const ub=document.getElementById('edit-undo-btn');
+  const rb=document.getElementById('edit-redo-btn');
+  if(ub) ub.disabled = editHistIdx<=0;
+  if(rb) rb.disabled = editHistIdx>=editHistory.length-1;
+}
+
+function editUndo(){
+  if(editHistIdx<=0) return;
+  editHistIdx--;
+  editProg = JSON.parse(editHistory[editHistIdx]);
+  renderEditCanvas();
+}
+
+function editRedo(){
+  if(editHistIdx>=editHistory.length-1) return;
+  editHistIdx++;
+  editProg = JSON.parse(editHistory[editHistIdx]);
+  renderEditCanvas();
+}
+
+function editGetElemColor(type){
+  const m={NO:'var(--iec-contact)',NC:'var(--iec-nc)',COIL_MEM:'var(--iec-contact)',
+    COIL:'var(--iec-coil)',SET:'var(--iec-coil-set)',RESET:'var(--iec-coil-reset)',
+    TON:'var(--iec-timer)',TOF:'var(--iec-timer)',CTU:'var(--iec-counter)'};
+  return m[type]||'var(--accent)';
+}
+
+function editMakeSVGContact(type){
+  const c=editGetElemColor(type);
+  let extra='';
+  if(type==='NC') extra=`<line x1="14" y1="28" x2="40" y2="12" stroke="${c}" stroke-width="2" stroke-linecap="round"/>`;
+  if(type==='COIL_MEM') extra=`<rect x="21" y="14" width="12" height="12" fill="none" stroke="${c}" stroke-width="1.5"/>`;
+  return `<svg class="edit-elem-svg" viewBox="0 0 54 40" style="width:54px;height:40px">
+    <line x1="0" y1="20" x2="14" y2="20" stroke="var(--iec-line)" stroke-width="2"/>
+    <line x1="14" y1="8" x2="14" y2="32" stroke="${c}" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="40" y1="8" x2="40" y2="32" stroke="${c}" stroke-width="2.5" stroke-linecap="round"/>
+    ${extra}
+    <line x1="40" y1="20" x2="54" y2="20" stroke="var(--iec-line)" stroke-width="2"/>
+  </svg>`;
+}
+
+function editMakeSVGOutput(type){
+  const c=editGetElemColor(type);
+  let ins='';
+  if(type==='SET') ins=`<text x="27" y="25" text-anchor="middle" font-size="12" fill="${c}" font-weight="bold">S</text>`;
+  else if(type==='RESET') ins=`<text x="27" y="25" text-anchor="middle" font-size="12" fill="${c}" font-weight="bold">R</text>`;
+  return `<svg class="edit-elem-svg" viewBox="0 0 54 40" style="width:54px;height:40px">
+    <line x1="0" y1="20" x2="14" y2="20" stroke="var(--iec-line)" stroke-width="2"/>
+    <path d="M14,8 A13,13 0 0,0 14,32" fill="none" stroke="${c}" stroke-width="2.5"/>
+    <path d="M40,8 A13,13 0 0,1 40,32" fill="none" stroke="${c}" stroke-width="2.5"/>
+    ${ins}
+    <line x1="40" y1="20" x2="54" y2="20" stroke="var(--iec-line)" stroke-width="2"/>
+  </svg>`;
+}
+
+function editMakeSVGBig(el){
+  const c=editGetElemColor(el.type);
+  const lbl=el.type==='CTU'?`PV:${el.pv||10}`:`PT:${el.pt||'T#5S'}`;
+  return `<svg class="edit-elem-svg" viewBox="0 0 70 44" style="width:70px;height:44px">
+    <rect x="2" y="2" width="66" height="40" rx="3" fill="var(--bg3)" stroke="${c}" stroke-width="2"/>
+    <text x="35" y="18" text-anchor="middle" font-size="10" fill="${c}" font-weight="bold">${el.type}</text>
+    <line x1="2" y1="22" x2="68" y2="22" stroke="${c}" stroke-width=".5" opacity=".4"/>
+    <text x="35" y="35" text-anchor="middle" font-size="8" fill="${c}" opacity=".7">${lbl}</text>
+  </svg>`;
+}
+
+function renderEditCanvas(){
+  const canvas=document.getElementById('edit-canvas');
+  if(!canvas||!editProg) return;
+  canvas.innerHTML='';
+  (editProg.rungs||[]).forEach((rung,ri)=>{canvas.appendChild(buildEditRungEl(rung,ri));});
+}
+
+function buildEditRungEl(rung,ri){
+  const wrap=document.createElement('div');
+  wrap.className='edit-rung';
+  wrap.dataset.ri=ri;
+
+  // Number column
+  const numDiv=document.createElement('div');
+  numDiv.className='edit-rung-num';
+  numDiv.innerHTML=`<span>N${ri+1}</span><span style="font-size:14px;cursor:grab;color:var(--border2);">⠿</span>`;
+  wrap.appendChild(numDiv);
+
+  const body=document.createElement('div');
+  body.className='edit-rung-body';
+
+  // Comment bar
+  const cbar=document.createElement('div');
+  cbar.className='edit-comment-bar';
+  cbar.innerHTML=`<span style="color:var(--yellow);font-size:9px;font-family:JetBrains Mono">//</span>
+    <input class="edit-comment-inp" value="${rung.comment||''}" placeholder="Nhận xét rung..."
+      onchange="editProg.rungs[${ri}].comment=this.value">
+    <div class="edit-rung-actions">
+      <button class="edit-ra-btn" onclick="editAddBranch(${ri})">+ Branch</button>
+      <button class="edit-ra-btn" onclick="editMoveRung(${ri},-1)">↑</button>
+      <button class="edit-ra-btn" onclick="editMoveRung(${ri},1)">↓</button>
+      <button class="edit-ra-btn" onclick="editDupRung(${ri})">⧉</button>
+      <button class="edit-ra-btn del" onclick="editDelRung(${ri})">✕</button>
+    </div>`;
+  body.appendChild(cbar);
+
+  const numBranches=(rung.branches||[]).length;
+  const hasPost=numBranches>1;
+
+  // Branch rows
+  (rung.branches||[]).forEach((branch,bi)=>{
+    const row=document.createElement('div');
+    row.className='edit-branch-row';
+    if(bi<numBranches-1) row.style.borderBottom='1px dashed rgba(0,119,204,.15)';
+
+    // Highlight row when dragging over it
+    row.addEventListener('dragover', e=>{
+      e.preventDefault();
+      row.style.background='rgba(0,119,204,.04)';
+    });
+    row.addEventListener('dragleave', ()=>row.style.background='');
+    row.addEventListener('drop', ()=>row.style.background='');
+
+    // Wire bg
+    const wire=document.createElement('div');
+    wire.className='edit-branch-wire';
+    row.appendChild(wire);
+
+    // L+ rail
+    const lrail=document.createElement('div');
+    lrail.className='edit-power-rail';
+    lrail.innerHTML='<span class="edit-power-rail-label">L+</span>';
+    lrail.style.width='10px';
+    row.appendChild(lrail);
+
+    // Left vbar (parallel)
+    if(hasPost){
+      const lv=document.createElement('div');
+      lv.className='edit-vbar';
+      lv.innerHTML='<div class="edit-vbar-inner"></div>';
+      row.appendChild(lv);
+    }
+
+    // Drop zone + elements
+    row.appendChild(editMakeDropGap(ri,bi,0));
+    branch.forEach((el,ei)=>{
+      row.appendChild(editMakeElemCell(el,ri,bi,ei,false));
+      row.appendChild(editMakeDropGap(ri,bi,ei+1));
+    });
+
+    // Add element btn
+    const addBtn=document.createElement('button');
+    addBtn.className='edit-ra-btn';
+    addBtn.style.cssText='margin-left:4px;font-size:16px;padding:0 6px;line-height:1;';
+    addBtn.textContent='+';
+    addBtn.title='Thêm contact NO';
+    addBtn.onclick=()=>{
+      editProg.rungs[ri].branches[bi].push({type:'NO',tag:'TAG',addr:'I0.0'});
+      editSaveHistory(); renderEditCanvas();
+    };
+    row.appendChild(addBtn);
+
+    // Right vbar + del branch
+    if(hasPost){
+      const rv=document.createElement('div');
+      rv.className='edit-vbar';
+      rv.innerHTML='<div class="edit-vbar-inner"></div>';
+      row.appendChild(rv);
+    }
+
+    if(numBranches>1){
+      const delBr=document.createElement('button');
+      delBr.className='edit-ra-btn del';
+      delBr.style.cssText='margin-left:4px;font-size:9px;';
+      delBr.textContent='✕ Nhánh';
+      delBr.onclick=()=>editDelBranch(ri,bi);
+      row.appendChild(delBr);
+    }
+
+    // R+ rail
+    const rrail=document.createElement('div');
+    rrail.className='edit-power-rail';
+    rrail.innerHTML='<span class="edit-power-rail-label">N</span>';
+    rrail.style.cssText='width:10px;margin-left:auto;';
+    row.appendChild(rrail);
+
+    body.appendChild(row);
+  });
+
+  // POST contacts row
+  const postRow=document.createElement('div');
+  postRow.className='edit-branch-row edit-post-row';
+  postRow.style.minHeight='70px';
+  const postWire=document.createElement('div');
+  postWire.className='edit-branch-wire';
+  postRow.appendChild(postWire);
+  postRow.innerHTML+=`<span style="font-size:9px;font-weight:700;color:var(--accent);min-width:36px;padding:0 6px;font-family:JetBrains Mono;z-index:1">POST</span>`;
+  postRow.appendChild(editMakeDropGap(ri,'post',0));
+  (rung.postContacts||[]).forEach((el,ei)=>{
+    postRow.appendChild(editMakeElemCell(el,ri,'post',ei,false));
+    postRow.appendChild(editMakeDropGap(ri,'post',ei+1));
+  });
+  body.appendChild(postRow);
+
+  // Output row
+  const outRow=document.createElement('div');
+  outRow.className='edit-out-row';
+  outRow.innerHTML='<span class="edit-out-label">OUT</span>';
+
+  if(rung.output){
+    outRow.appendChild(editMakeElemCell(rung.output,ri,-1,-1,true));
+  }
+
+  // Output drop zone
+  const outDrop=document.createElement('div');
+  outDrop.className='edit-out-drop';
+  outDrop.textContent='⊙ Drop Output';
+  outDrop.ondragover=e=>{e.preventDefault();outDrop.classList.add('dg-hover');};
+  outDrop.ondragleave=()=>outDrop.classList.remove('dg-hover');
+  outDrop.ondrop=e=>{
+    e.preventDefault();outDrop.classList.remove('dg-hover');
+    const raw=e.dataTransfer.getData('text');
+    if(!raw) return;
+    const outTypes=['COIL','SET','RESET','TON','TOF','CTU'];
+    let type=null;
+    if(outTypes.includes(raw)){
+      type=raw;
+    } else {
+      try{const d=JSON.parse(raw);if(d.el&&outTypes.includes(d.el.type)) type=d.el.type;}catch(e){}
+    }
+    if(!type) return;
+    const cur=editProg.rungs[ri].output||{};
+    editProg.rungs[ri].output={...cur, type,
+      tag:cur.tag||'OUT', addr:cur.addr||'Q0.0',
+      pt:(type==='TON'||type==='TOF')?(cur.pt||'T#5S'):undefined,
+      pv:type==='CTU'?(cur.pv!=null?cur.pv:10):undefined};
+    editSaveHistory(); renderEditCanvas();
+    editSelected={ri,bi:-1,ei:-1,isOutput:true}; showEditProps(editSelected);
+  };
+  outRow.appendChild(outDrop);
+  body.appendChild(outRow);
+  wrap.appendChild(body);
+  return wrap;
+}
+
+function editMakeElemCell(el,ri,bi,ei,isOutput){
+  const cell=document.createElement('div');
+  cell.className=isOutput?'edit-output-cell':'edit-elem-cell';
+  const isBig=el.type==='TON'||el.type==='TOF'||el.type==='CTU';
+  const color=editGetElemColor(el.type);
+
+  const tagDiv=document.createElement('div');
+  tagDiv.className='edit-elem-tag';
+  tagDiv.style.color=color;
+  tagDiv.textContent=el.tag||'???';
+
+  const svgHTML=isBig?editMakeSVGBig(el):(isOutput?editMakeSVGOutput(el.type):editMakeSVGContact(el.type));
+
+  const addrDiv=document.createElement('div');
+  addrDiv.className='edit-elem-addr';
+  addrDiv.textContent=el.addr||'';
+
+  cell.appendChild(tagDiv);
+  cell.insertAdjacentHTML('beforeend',svgHTML);
+  cell.appendChild(addrDiv);
+
+  // Delete button
+  if(!isOutput){
+    const del=document.createElement('div');
+    del.className='edit-elem-del';
+    del.textContent='✕';
+    del.onclick=e=>{e.stopPropagation();editDelElem(ri,bi,ei,false);};
+    cell.appendChild(del);
+  }
+
+  cell.onclick=e=>{
+    e.stopPropagation();
+    document.querySelectorAll('.edit-elem-cell,.edit-output-cell').forEach(c=>c.classList.remove('ec-selected'));
+    cell.classList.add('ec-selected');
+    editSelected={ri,bi,ei,isOutput};
+    showEditProps(editSelected);
+  };
+
+  // Draggable
+  cell.draggable=true;
+  cell.addEventListener('dragstart',e=>{
+    e.dataTransfer.setData('text',JSON.stringify({src:'elem',ri,bi,ei,isOutput,el}));
+    setTimeout(()=>cell.style.opacity='.3',0);
+  });
+  cell.addEventListener('dragend',()=>cell.style.opacity='1');
+
+  return cell;
+}
+
+function editMakeDropGap(ri,bi,ei){
+  const dz=document.createElement('div');
+  dz.className='edit-drop-gap';
+  dz.innerHTML='<svg width="8" height="20" viewBox="0 0 8 20"><line x1="4" y1="0" x2="4" y2="20" stroke="var(--border2)" stroke-width="1.5" stroke-dasharray="3,2"/></svg>';
+  dz.ondragover=e=>{e.preventDefault();dz.classList.add('dg-hover');};
+  dz.ondragleave=()=>dz.classList.remove('dg-hover');
+  const CONTACT_TYPES = ['NO','NC','COIL_MEM'];
+  const OUTPUT_TYPES  = ['COIL','SET','RESET','TON','TOF','CTU'];
+
+  dz.ondrop=e=>{
+    e.preventDefault();dz.classList.remove('dg-hover');
+    const raw=e.dataTransfer.getData('text');
+    if(!raw) return;
+
+    // ── Palette drop (plain type string) ──
+    if(CONTACT_TYPES.includes(raw)||OUTPUT_TYPES.includes(raw)){
+      if(CONTACT_TYPES.includes(raw)){
+        // Drop contact into branch/post
+        const newEl={type:raw,tag:'TAG',addr:'I0.0'};
+        if(bi==='post'){
+          editProg.rungs[ri].postContacts=editProg.rungs[ri].postContacts||[];
+          editProg.rungs[ri].postContacts.splice(ei,0,newEl);
+        } else {
+          editProg.rungs[ri].branches[bi].splice(ei,0,newEl);
+        }
+        editSaveHistory(); renderEditCanvas();
+        editSelected={ri,bi,ei,isOutput:false}; showEditProps(editSelected);
+      } else {
+        // Output dropped on branch → show message, redirect to output zone
+        // Actually allow dropping output on POST row as special handling
+        if(bi==='post'){
+          // Ignore output on post row
+        } else {
+          // Replace rung output
+          const out=editProg.rungs[ri].output||{};
+          out.type=raw;
+          if(!out.tag) out.tag='OUT';
+          if(!out.addr) out.addr='Q0.0';
+          if((raw==='TON'||raw==='TOF') && !out.pt) out.pt='T#5S';
+          if(raw==='CTU' && out.pv==null) out.pv=10;
+          editProg.rungs[ri].output=out;
+          editSaveHistory(); renderEditCanvas();
+          editSelected={ri,bi:-1,ei:-1,isOutput:true}; showEditProps(editSelected);
+        }
+      }
+      return;
+    }
+
+    // ── Element move (JSON src) ──
+    try{
+      const d=JSON.parse(raw);
+      if(d.src==='elem' && !d.isOutput){
+        const moved=JSON.parse(JSON.stringify(d.el));
+        if(d.bi==='post') editProg.rungs[d.ri].postContacts.splice(d.ei,1);
+        else editProg.rungs[d.ri].branches[d.bi].splice(d.ei,1);
+        const destEi=(d.ri===ri&&d.bi===bi&&d.ei<ei)?ei-1:ei;
+        if(bi==='post'){
+          editProg.rungs[ri].postContacts=editProg.rungs[ri].postContacts||[];
+          editProg.rungs[ri].postContacts.splice(Math.max(0,destEi),0,moved);
+        } else {
+          editProg.rungs[ri].branches[bi].splice(Math.max(0,destEi),0,moved);
+        }
+        editSaveHistory(); renderEditCanvas();
+      }
+    }catch(err){}
+  };
+  return dz;
+}
+
+function showEditProps(sel){
+  if(!sel) return;
+  const panel=document.getElementById('edit-props');
+  if(!panel) return;
+  const {ri,bi,ei,isOutput}=sel;
+  const rung=editProg.rungs[ri];
+  if(!rung){panel.innerHTML='';return;}
+  let el;
+  if(isOutput) el=rung.output;
+  else if(bi==='post') el=(rung.postContacts||[])[ei];
+  else el=(rung.branches[bi]||[])[ei];
+  if(!el){panel.innerHTML='<div style="color:var(--text-dim);padding:12px;font-size:10px;">Không tìm thấy phần tử</div>';return;}
+
+  const biJS=bi==='post'?"'post'":bi;
+  const isTimer=el.type==='TON'||el.type==='TOF';
+  const isCounter=el.type==='CTU';
+  panel.innerHTML=`
+    <div style="font-size:10px;font-weight:700;color:var(--accent);padding:0 0 8px;letter-spacing:.5px;">⚙ Thuộc tính</div>
+    <div style="margin-bottom:7px;">
+      <div style="font-size:9px;color:var(--text-dim);margin-bottom:3px;">Loại</div>
+      <select id="ep-type" style="width:100%;padding:4px 5px;font-size:11px;border:1px solid var(--border2);border-radius:4px;background:var(--bg3);color:var(--text);"
+        onchange="applyEditPropsField('type',this.value)">
+        ${isOutput?
+          ['COIL','SET','RESET','TON','TOF','CTU'].map(t=>`<option value="${t}"${el.type===t?' selected':''}>${t}</option>`).join(''):
+          ['NO','NC','COIL_MEM'].map(t=>`<option value="${t}"${el.type===t?' selected':''}>${t}</option>`).join('')}
+      </select>
+    </div>
+    <div style="margin-bottom:7px;">
+      <div style="font-size:9px;color:var(--text-dim);margin-bottom:3px;">Tag</div>
+      <input id="ep-tag" value="${el.tag||''}" placeholder="TAG_NAME" style="width:100%;padding:4px 5px;font-size:11px;border:1px solid var(--border2);border-radius:4px;background:var(--bg3);color:var(--text);box-sizing:border-box;"
+        oninput="editUpdateSilent('tag',this.value,${ri},${biJS},${ei},${isOutput})"
+        onblur="applyEditPropsField('tag',this.value)">
+    </div>
+    <div style="margin-bottom:7px;">
+      <div style="font-size:9px;color:var(--text-dim);margin-bottom:3px;">Địa chỉ</div>
+      <input id="ep-addr" value="${el.addr||''}" placeholder="I0.0" style="width:100%;padding:4px 5px;font-size:11px;border:1px solid var(--border2);border-radius:4px;background:var(--bg3);color:var(--text);box-sizing:border-box;"
+        oninput="editUpdateSilent('addr',this.value,${ri},${biJS},${ei},${isOutput})"
+        onblur="applyEditPropsField('addr',this.value)">
+    </div>
+    ${isTimer?`<div style="margin-bottom:7px;"><div style="font-size:9px;color:var(--text-dim);margin-bottom:3px;">PT (Preset Time)</div>
+      <input id="ep-pt" value="${el.pt||'T#5S'}" placeholder="T#5S" style="width:100%;padding:4px 5px;font-size:11px;border:1px solid var(--border2);border-radius:4px;background:var(--bg3);color:var(--text);box-sizing:border-box;"
+        onblur="applyEditPropsField('pt',this.value)">
+    </div>`:''}
+    ${isCounter?`<div style="margin-bottom:7px;"><div style="font-size:9px;color:var(--text-dim);margin-bottom:3px;">PV (Preset Value)</div>
+      <input id="ep-pv" type="number" value="${el.pv!=null?el.pv:10}" style="width:100%;padding:4px 5px;font-size:11px;border:1px solid var(--border2);border-radius:4px;background:var(--bg3);color:var(--text);box-sizing:border-box;"
+        onblur="applyEditPropsField('pv',parseInt(this.value))">
+    </div>`:''}
+    <div style="margin-bottom:5px;"><div style="font-size:9px;color:var(--text-dim);margin-bottom:3px;">Comment rung</div>
+      <input id="ep-comment" value="${rung.comment||''}" style="width:100%;padding:4px 5px;font-size:11px;border:1px solid var(--border2);border-radius:4px;background:var(--bg3);color:var(--text);box-sizing:border-box;"
+        onblur="editProg.rungs[${ri}].comment=this.value;renderEditCanvas()">
+    </div>
+    <button onclick="applyEditPropsAll()" style="width:100%;padding:5px;background:var(--accent);border:none;border-radius:4px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;margin-bottom:5px;">✓ Lưu</button>
+    <button onclick="editDelElem(${ri},${biJS},${ei},${isOutput})" style="width:100%;padding:4px;background:none;border:1px solid #cc2200;border-radius:4px;color:#cc2200;font-size:10px;cursor:pointer;">🗑 Xóa phần tử</button>`;
+}
+
+function editUpdateSilent(prop,val,ri,bi,ei,isOutput){
+  const rung=editProg.rungs[ri];
+  let el;
+  if(isOutput) el=rung.output;
+  else if(bi==='post') el=(rung.postContacts||[])[ei];
+  else el=(rung.branches[bi]||[])[ei];
+  if(el) el[prop]=val;
+  // Update label on canvas without rebuild
+  const cell=document.querySelector(`.edit-rung[data-ri="${ri}"] .edit-elem-tag`);
+  // Update all matching tags via querySelectorAll
+  document.querySelectorAll(`.edit-rung[data-ri="${ri}"] .edit-elem-cell:nth-of-type(${ei+1}) .edit-elem-tag,
+    .edit-rung[data-ri="${ri}"] .edit-output-cell .edit-elem-tag`).forEach(el=>{
+    if(prop==='tag') el.textContent=val;
+  });
+}
+
+function applyEditPropsField(prop,val){
+  if(!editSelected) return;
+  const {ri,bi,ei,isOutput}=editSelected;
+  const rung=editProg.rungs[ri];
+  let el;
+  if(isOutput) el=rung.output;
+  else if(bi==='post') el=(rung.postContacts||[])[ei];
+  else el=(rung.branches[bi]||[])[ei];
+  if(!el) return;
+  if(prop==='pv') el[prop]=parseInt(val)||0;
+  else el[prop]=val;
+  if(prop==='type'){ editSaveHistory(); renderEditCanvas(); showEditProps(editSelected); }
+}
+
+function applyEditPropsAll(){
+  if(!editSelected) return;
+  const {ri,bi,ei,isOutput}=editSelected;
+  const rung=editProg.rungs[ri];
+  let el;
+  if(isOutput) el=rung.output;
+  else if(bi==='post') el=(rung.postContacts||[])[ei];
+  else el=(rung.branches[bi]||[])[ei];
+  if(!el) return;
+  const t=document.getElementById('ep-type')?.value;
+  const tag=document.getElementById('ep-tag')?.value?.trim();
+  const addr=document.getElementById('ep-addr')?.value?.trim();
+  const pt=document.getElementById('ep-pt')?.value?.trim();
+  const pv=document.getElementById('ep-pv')?.value;
+  const cmt=document.getElementById('ep-comment')?.value;
+  if(t) el.type=t;
+  if(tag!==undefined) el.tag=tag;
+  if(addr!==undefined) el.addr=addr;
+  if(pt) el.pt=pt;
+  if(pv!=null) el.pv=parseInt(pv)||0;
+  if(cmt!==undefined) rung.comment=cmt;
+  editSaveHistory(); renderEditCanvas(); showEditProps(editSelected);
+}
+
+function palDragStart(e, type){
+  e.dataTransfer.setData('text', type);
+  e.dataTransfer.effectAllowed = 'copy';
+}
+
+// Double-click palette → thêm vào vị trí đang selected hoặc cuối branch đầu tiên
+function palClickAdd(type){
+  if(!editProg?.rungs?.length) return;
+  const OUTPUT_TYPES = ['COIL','SET','RESET','TON','TOF','CTU'];
+  const CONTACT_TYPES = ['NO','NC','COIL_MEM'];
+  
+  // Nếu có phần tử đang selected
+  if(editSelected){
+    const {ri, bi, ei, isOutput} = editSelected;
+    const rung = editProg.rungs[ri];
+    if(OUTPUT_TYPES.includes(type)){
+      // Thêm vào output
+      rung.output = {type, tag:'OUT', addr:'Q0.0',
+        pt:(type==='TON'||type==='TOF')?'T#5S':undefined,
+        pv:type==='CTU'?10:undefined};
+      editSaveHistory(); renderEditCanvas();
+      editSelected={ri,bi:-1,ei:-1,isOutput:true}; showEditProps(editSelected);
+    } else if(CONTACT_TYPES.includes(type)){
+      const newEl={type,tag:'TAG',addr:'I0.0'};
+      const insertBi = (bi==='post'||bi===-1) ? 0 : bi;
+      const insertEi = (ei===-1) ? (rung.branches[insertBi]?.length||0) : ei+1;
+      if(bi==='post'){
+        rung.postContacts = rung.postContacts||[];
+        rung.postContacts.push(newEl);
+      } else {
+        rung.branches[insertBi] = rung.branches[insertBi]||[];
+        rung.branches[insertBi].splice(insertEi,0,newEl);
+      }
+      editSaveHistory(); renderEditCanvas();
+    }
+  } else {
+    // Không có selection — thêm vào rung cuối, branch 0
+    const ri = editProg.rungs.length-1;
+    const rung = editProg.rungs[ri];
+    if(OUTPUT_TYPES.includes(type)){
+      rung.output={type,tag:'OUT',addr:'Q0.0'};
+    } else {
+      rung.branches[0].push({type,tag:'TAG',addr:'I0.0'});
+    }
+    editSaveHistory(); renderEditCanvas();
+  }
+}
+
+function editDelElem(ri, bi, ei, isOutput){
+  const rung = editProg.rungs[ri];
+  if(isOutput){
+    rung.output = {type:'COIL', tag:'', addr:''};
+  } else if(bi==='post'){
+    if(rung.postContacts) rung.postContacts.splice(ei, 1);
+  } else {
+    if(rung.branches[bi]) rung.branches[bi].splice(ei, 1);
+  }
+  editSelected = null;
+  const panel = document.getElementById('edit-props');
+  if(panel) panel.innerHTML = '<div style="color:var(--text-dim);padding:12px;font-size:10px;">Đã xóa phần tử</div>';
+  editSaveHistory();
+  renderEditCanvas();
+}
+
+function editDelRung(ri){
+  if(!confirm('Xóa rung N'+(ri+1)+'?')) return;
+  editProg.rungs.splice(ri, 1);
+  editSaveHistory(); renderEditCanvas();
+}
+
+function editMoveRung(ri, dir){
+  const r = editProg.rungs;
+  const ni = ri + dir;
+  if(ni < 0 || ni >= r.length) return;
+  [r[ri], r[ni]] = [r[ni], r[ri]];
+  editSaveHistory(); renderEditCanvas();
+}
+
+function editDupRung(ri){
+  const dup = JSON.parse(JSON.stringify(editProg.rungs[ri]));
+  dup.number = editProg.rungs.length + 1;
+  editProg.rungs.splice(ri + 1, 0, dup);
+  editSaveHistory(); renderEditCanvas();
+}
+
+function editAddBranch(ri){
+  editProg.rungs[ri].branches.push([{type:'NO', tag:'TAG', addr:'I0.0'}]);
+  editSaveHistory(); renderEditCanvas();
+}
+
+function editDelBranch(ri, bi){
+  if(editProg.rungs[ri].branches.length <= 1) return;
+  editProg.rungs[ri].branches.splice(bi, 1);
+  editSaveHistory(); renderEditCanvas();
+}
+
+function editAddRung(){
+  editProg.rungs = editProg.rungs || [];
+  editProg.rungs.push({
+    number: editProg.rungs.length + 1,
+    comment: 'New Rung',
+    branches: [[{type:'NO', tag:'TAG', addr:'I0.0'}]],
+    postContacts: [],
+    output: {type:'COIL', tag:'OUT', addr:'Q0.0'}
+  });
+  editSaveHistory(); renderEditCanvas();
+  // Scroll to bottom
+  setTimeout(()=>{
+    const c=document.getElementById('edit-canvas');
+    if(c) c.scrollTop = c.scrollHeight;
+  }, 50);
+}
+
+function applyEditChanges(){
+  lastProg.rungs = editProg.rungs;
+  toggleEditMode();
+  renderAll(lastProg);
+  rs('ladder');
+}
+
+
+function toggleSim(){
+  if(!lastProg){ alert('Hãy tạo chương trình trước!'); return; }
+  simRunning ? stopSim() : startSim();
+}
+
+function startSim(){
+  simRunning = true;
+  simMemory = {}; simOutputs = {}; simTimers = {};
+  if(lastProg?.rungs) lastProg.rungs.forEach(r=>{
+    (r.branches||[]).forEach(b=>b.forEach(el=>{ if(el.tag) simMemory[el.tag]=false; }));
+    (r.postContacts||[]).forEach(el=>{ if(el.tag) simMemory[el.tag]=false; });
+    if(r.output?.tag){
+      simOutputs[r.output.tag]=false;
+      simOutputs[r.output.tag+'.Q']=false;
+      simOutputs[r.output.tag+'_Q']=false;
+      const out = r.output;
+      if(out.type==='TON'||out.type==='TOF'){
+        simTimers[out.tag]={elapsed:0, pt:parsePT(out.pt), done:false, wasEnabled:false};
+      }
+    }
+  });
+  const btn = document.getElementById('btn-sim');
+  if(btn){ btn.innerHTML='■ STOP'; btn.classList.add('running'); }
+  document.getElementById('sim-toolbar').classList.add('active');
+  // Show elapsed time displays
+  document.querySelectorAll('[id^="sim-et-"]').forEach(el=>el.style.display='block');
+  renderSimMemPanel();
+  simScan();
+  simInterval = setInterval(simScan, SIM_CYCLE);
+}
+
+function stopSim(){
+  simRunning = false;
+  clearInterval(simInterval); simInterval=null;
+  const btn = document.getElementById('btn-sim');
+  if(btn){ btn.innerHTML='▶ SIM'; btn.classList.remove('running'); }
+  document.getElementById('sim-toolbar').classList.remove('active');
+  document.querySelectorAll('#ladder-out line,#ladder-out path,#ladder-out rect')
+    .forEach(el=>el.classList.remove('sim-wire-active','sim-wire-inactive','sim-coil-active','sim-coil-inactive','sim-rail-active','sim-rail-inactive'));
+  // Hide & reset elapsed displays
+  document.querySelectorAll('[id^="sim-et-"]').forEach(el=>{ el.style.display='none'; el.textContent='0.0s'; });
+}
+
+function simToggleContact(tag){
+  if(!simRunning) return;
+  simMemory[tag] = !simMemory[tag];
+  // Cập nhật style button trực tiếp — không rebuild DOM để tránh mất focus
+  const btn = document.querySelector(`[data-sim-tag="${CSS.escape(tag)}"]`);
+  if(btn){
+    const on = simMemory[tag];
+    btn.style.background = on ? 'rgba(0,153,77,0.2)' : 'var(--bg3)';
+    btn.style.color      = on ? '#00cc55' : 'var(--text-dim)';
+    btn.style.borderColor= on ? '#00cc55' : 'var(--border2)';
+    btn.style.boxShadow  = on ? '0 0 6px rgba(0,204,85,0.4)' : 'none';
+    btn.querySelector('span').textContent = on ? 'ON' : 'OFF';
+  }
+  simScan();
+}
+
+function renderSimMemPanel(){
+  const panel = document.getElementById('sim-mem');
+  if(!panel) return;
+  const inputs = Object.keys(simMemory).filter(t=>!simOutputs.hasOwnProperty(t));
+
+  // Chỉ rebuild nếu số lượng nút thay đổi (khởi tạo lần đầu)
+  const existingTags = [...panel.querySelectorAll('[data-sim-tag]')].map(b=>b.dataset.simTag);
+  const sameButtons  = existingTags.length===inputs.length && inputs.every((t,i)=>existingTags[i]===t);
+
+  if(!sameButtons){
+    // Tạo mới toàn bộ — dùng event delegation để tránh mất click
+    panel.innerHTML = inputs.map(tag=>{
+      const on = simMemory[tag];
+      return `<button data-sim-tag="${tag}"
+        style="font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;
+               padding:3px 10px;border-radius:5px;cursor:pointer;border:1.5px solid;
+               min-width:52px;text-align:center;transition:all .1s;user-select:none;
+               background:${on?'rgba(0,153,77,0.2)':'var(--bg3)'};
+               color:${on?'#00cc55':'var(--text-dim)'};
+               border-color:${on?'#00cc55':'var(--border2)'};
+               box-shadow:${on?'0 0 6px rgba(0,204,85,0.4)':'none'};">
+        ${tag}<br><span style="font-size:8px">${on?'ON':'OFF'}</span>
+      </button>`;
+    }).join('');
+
+    // Event delegation — 1 listener duy nhất trên panel
+    panel.onclick = e=>{
+      const btn = e.target.closest('[data-sim-tag]');
+      if(btn) simToggleContact(btn.dataset.simTag);
+    };
+  } else {
+    // Chỉ cập nhật style, không rebuild
+    inputs.forEach(tag=>{
+      const btn = panel.querySelector(`[data-sim-tag="${CSS.escape(tag)}"]`);
+      if(!btn) return;
+      const on = simMemory[tag];
+      btn.style.background  = on ? 'rgba(0,153,77,0.2)' : 'var(--bg3)';
+      btn.style.color       = on ? '#00cc55' : 'var(--text-dim)';
+      btn.style.borderColor = on ? '#00cc55' : 'var(--border2)';
+      btn.style.boxShadow   = on ? '0 0 6px rgba(0,204,85,0.4)' : 'none';
+      btn.querySelector('span').textContent = on ? 'ON' : 'OFF';
+    });
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// SIMULATION ENGINE v2 — Stable & Accurate
+// ══════════════════════════════════════════════════════
+
+function simScan(){
+  if(!lastProg?.rungs) return;
+
+  // ── Pass 1: Evaluate & update all outputs ──
+  const newOutputs = {};
+
+  lastProg.rungs.forEach(rung=>{
+    const branches = rung.branches||[];
+    const postC    = rung.postContacts||[];
+    const out      = rung.output;
+
+    // Evaluate parallel branches (OR of series contacts)
+    const parallelOK = branches.length===0
+      || branches.some(b=> b.length===0 || b.every(el=>evalContact(el)));
+
+    // Evaluate postContacts (AND after parallel block)
+    const postOK = postC.every(el=>evalContact(el));
+    const rungEN = parallelOK && postOK;
+
+    if(!out?.tag) return;
+
+    if(out.type==='COIL'){
+      newOutputs[out.tag] = rungEN;
+      if(out.addr) newOutputs[out.addr] = rungEN;
+
+    } else if(out.type==='SET'){
+      if(rungEN) newOutputs[out.tag] = true;
+      else if(!(out.tag in newOutputs)) newOutputs[out.tag] = simOutputs[out.tag]||false;
+      if(out.addr) newOutputs[out.addr] = newOutputs[out.tag];
+
+    } else if(out.type==='RESET'){
+      if(rungEN) newOutputs[out.tag] = false;
+      else if(!(out.tag in newOutputs)) newOutputs[out.tag] = simOutputs[out.tag]||false;
+      if(out.addr) newOutputs[out.addr] = newOutputs[out.tag];
+
+    } else if(out.type==='TON'){
+      let t = simTimers[out.tag];
+      if(!t){ t={elapsed:0,pt:parsePT(out.pt),done:false}; simTimers[out.tag]=t; }
+      t.pt = parsePT(out.pt);
+      if(rungEN){
+        t.elapsed = Math.min(t.elapsed+SIM_CYCLE, t.pt);
+        t.done = t.elapsed>=t.pt;
+      } else {
+        t.elapsed=0; t.done=false;
+      }
+      // TON: output (.Q) = done
+      const done=t.done;
+      newOutputs[out.tag]        = done;
+      newOutputs[out.tag+'.Q']   = done;
+      newOutputs[out.tag+'_Q']   = done;
+      newOutputs[out.tag+'.DN']  = done;
+      if(out.addr) newOutputs[out.addr] = done;
+      if(out.addr && /^T\d/i.test(out.addr)) newOutputs[out.addr]=done;
+      // Update elapsed display
+      const et=document.getElementById('sim-et-'+out.tag);
+      if(et){
+        et.textContent=`${(t.elapsed/1000).toFixed(1)}/${(t.pt/1000).toFixed(1)}s`;
+        et.style.fill=done?'#00cc55':(rungEN?'#ffaa00':'#888');
+      }
+
+    } else if(out.type==='TOF'){
+      let t=simTimers[out.tag];
+      if(!t){ t={elapsed:0,pt:parsePT(out.pt),done:false,wasEN:false}; simTimers[out.tag]=t; }
+      t.pt=parsePT(out.pt);
+      let outVal;
+      if(rungEN){ t.elapsed=0; t.done=false; t.wasEN=true; outVal=true; }
+      else if(t.wasEN){
+        t.elapsed=Math.min(t.elapsed+SIM_CYCLE,t.pt);
+        t.done=t.elapsed>=t.pt;
+        outVal=!t.done;
+        if(t.done){ t.wasEN=false; t.elapsed=0; }
+      } else { outVal=false; }
+      newOutputs[out.tag]=outVal;
+      newOutputs[out.tag+'.Q']=outVal;
+      newOutputs[out.tag+'_Q']=outVal;
+      if(out.addr) newOutputs[out.addr]=outVal;
+      const et2=document.getElementById('sim-et-'+out.tag);
+      if(et2) et2.textContent=`${(t.elapsed/1000).toFixed(1)}s`;
+
+    } else if(out.type==='CTU'){
+      let t=simTimers[out.tag];
+      if(!t){ t={count:0,pv:out.pv||10,prevEN:false}; simTimers[out.tag]=t; }
+      t.pv=out.pv||10;
+      if(rungEN && !t.prevEN) t.count++;  // rising edge
+      t.prevEN=rungEN;
+      const cDone=t.count>=t.pv;
+      newOutputs[out.tag]=cDone;
+      newOutputs[out.tag+'.Q']=cDone;
+      newOutputs[out.tag+'_Q']=cDone;
+      newOutputs[out.tag+'.DN']=cDone;
+      if(out.addr) newOutputs[out.addr]=cDone;
+      const et3=document.getElementById('sim-et-'+out.tag);
+      if(et3) et3.textContent=`${t.count}/${t.pv}`;
+    }
+  });
+
+  // ── Pass 2: Merge outputs → memory (for self-holding & cascading) ──
+  // Keep SET/RESET latched values from previous cycle
+  Object.keys(simOutputs).forEach(k=>{
+    if(!(k in newOutputs)) newOutputs[k]=simOutputs[k];
+  });
+  Object.assign(simOutputs, newOutputs);
+  // Sync to simMemory (contacts use simMemory for lookup)
+  Object.assign(simMemory, simOutputs);
+
+  // ── Pass 3: Apply SVG visuals ──
+  applySimVisuals();
+}
+
+function evalContact(el){
+  const tag  = el.tag  || '';
+  const addr = el.addr || '';
+  // Lookup order: exact tag → .Q variant → _Q variant → addr
+  const state =
+    simMemory.hasOwnProperty(tag)      ? simMemory[tag]      :
+    simMemory.hasOwnProperty(tag+'.Q') ? simMemory[tag+'.Q'] :
+    simMemory.hasOwnProperty(tag+'_Q') ? simMemory[tag+'_Q'] :
+    addr && simMemory.hasOwnProperty(addr) ? simMemory[addr] :
+    false;
+  return el.type==='NC' ? !state : !!state;
+}
+
+function applySimVisuals(){
+  if(!lastProg?.rungs) return;
+  const wraps = document.querySelectorAll('#ladder-out .rung-wrap');
+
+  lastProg.rungs.forEach((rung,ri)=>{
+    const wrap = wraps[ri];
+    if(!wrap) return;
+    const svg = wrap.querySelector('svg');
+    if(!svg) return;
+
+    const branches = rung.branches||[];
+    const postC    = rung.postContacts||[];
+    const out      = rung.output;
+
+    // Evaluate per-branch and overall
+    const branchPowered = branches.map(b=>
+      b.length===0 || b.every(el=>evalContact(el))
+    );
+    const parallelOK  = branches.length===0 || branchPowered.some(r=>r);
+    const postOK      = postC.every(el=>evalContact(el));
+    const rungPowered = parallelOK && postOK;
+    const outPowered  = out?.tag ? !!simOutputs[out.tag] : rungPowered;
+
+    const setCls=(el,active)=>{
+      el.classList.remove('sim-wire-active','sim-wire-inactive');
+      el.classList.add(active?'sim-wire-active':'sim-wire-inactive');
+    };
+
+    // ── data-bi lines: branch wires ──
+    svg.querySelectorAll('line[data-bi]').forEach(l=>{
+      const bi=parseInt(l.getAttribute('data-bi'));
+      setCls(l, (branchPowered[bi]||false) && postOK);
+    });
+
+    // ── data-role="main" : wires before/between blocks ──
+    svg.querySelectorAll('line[data-role="main"]').forEach(l=>setCls(l, rungPowered));
+
+    // ── data-role="post" : postContact wires ──
+    svg.querySelectorAll('line[data-role="post"]').forEach(l=>setCls(l, rungPowered));
+
+    // ── data-role="out" : output → N wire ──
+    svg.querySelectorAll('line[data-role="out"]').forEach(l=>setCls(l, outPowered));
+
+    // ── data-role="vbar" : vertical connecting bars ──
+    svg.querySelectorAll('line[data-role="vbar"]').forEach(l=>setCls(l, rungPowered));
+
+    // ── data-role="branch" : contact wire stubs inside branches ──
+    // These are colored by their branch's power (use parent bi from nearby data-bi lines)
+    // We use Y-position to match branch
+    const branchY = branches.map((_,bi)=> R.PAD_H + bi*R.CELL_H + R.CELL_H*0.5);
+    svg.querySelectorAll('line[data-role="branch"]').forEach(l=>{
+      const midY = ((parseFloat(l.getAttribute('y1'))||0)+(parseFloat(l.getAttribute('y2'))||0))/2;
+      let bi=0, minD=999;
+      branchY.forEach((by,i)=>{ const d=Math.abs(midY-by); if(d<minD){minD=d;bi=i;} });
+      setCls(l, (branchPowered[bi]||false) && postOK);
+    });
+
+    // ── data-role="post" wire stubs (from drawContact) ──
+    svg.querySelectorAll('line[data-role="post"]').forEach(l=>setCls(l, rungPowered));
+
+    // ── data-contact: individual contact vertical bars ──
+    // Build contact pass map
+    const allElems = branches.flat().concat(postC);
+    const passMap = {};
+    allElems.forEach(el=>{
+      const p = evalContact(el);
+      if(el.tag) passMap[el.tag] = p;
+      if(el.addr) passMap[el.addr] = p;
+    });
+    svg.querySelectorAll('line[data-contact]').forEach(l=>{
+      const tag = l.getAttribute('data-contact');
+      if(passMap.hasOwnProperty(tag)) setCls(l, passMap[tag]);
+    });
+
+    // ── Rails ──
+    svg.querySelectorAll('rect').forEach(r=>{
+      r.classList.remove('sim-rail-active','sim-rail-inactive');
+      r.classList.add(rungPowered?'sim-rail-active':'sim-rail-inactive');
+    });
+
+    // ── Output coil ──
+    svg.querySelectorAll('path').forEach(p=>{
+      p.classList.remove('sim-coil-active','sim-coil-inactive');
+      p.classList.add(outPowered?'sim-coil-active':'sim-coil-inactive');
+    });
+  });
+
+  renderSimMemPanel();
+}
+
+
+function renderCode(p){
+  document.getElementById('code-out').textContent=`(* ================================================\n   ${p.title}\n   CPU : ${document.getElementById('cpu').value}\n   Block: ${document.getElementById('block').value}\n   Generated by PLCSmart SaaS\n   IEC 61131-3 / TIA Portal\n   ================================================ *)\n\n${p.scl_code}`;
+}
+function renderInfo(p){
+  document.getElementById('info-out').innerHTML=`
+  <div class="info-card"><h3>${T('ioOverview')}</h3><p style="font-size:13px;color:var(--text);line-height:1.7;">${p.description}</p></div>
+  <div class="info-card"><h3>${T('ioList')}</h3>
+  <table class="iot"><tr><th>${T('ioTagCol')}</th><th>${T('ioAddrCol')}</th><th>${T('ioTypeCol')}</th><th>${T('ioDescCol')}</th></tr>
+  ${(p.io_list||[]).map(io=>`<tr><td style="color:var(--green)">${io.tag}</td><td style="color:var(--yellow)">${io.addr}</td><td style="color:var(--accent)">${io.type}</td><td>${io.desc||''}</td></tr>`).join('')}
+  </table></div>
+  ${p.notes?.length?`<div class="info-card"><h3>${T('ioNotes')}</h3>${p.notes.map(n=>`<div class="note-item">${n}</div>`).join('')}</div>`:''}`;
+}
+
+
+function onProgTypeChange(val){
+  // Nếu là user template có programData → load luôn
+  const tpl = savedProgTypes.find(p=>p.value===val && p.programData);
+  if(!tpl) return;
+  if(!confirm('Load template "'+getProgTypeLabel(tpl)+'" vào Ladder?')) return;
+  lastProg = {...tpl.programData};
+  renderAll(lastProg); rs('ladder');
+}
+
+function saveAsTemplate(){
+  if(!lastProg){ alert(T('noProgSave')); return; }
+  const rawKey = lastProg.title.toLowerCase()
+    .replace(/[^a-z0-9\s]/g,'').trim().replace(/\s+/g,'_').substring(0,30);
+  const key = rawKey || 'custom_'+Date.now();
+  if(savedProgTypes.find(p=>p.value===key)){
+    if(!confirm('Template "'+lastProg.title+'" đã tồn tại. Ghi đè?')) return;
+    savedProgTypes = savedProgTypes.filter(p=>p.value!==key);
+  }
+  const nameVI = prompt('Tên hiển thị (Tiếng Việt):', lastProg.title);
+  if(nameVI===null) return;
+  const nameEN = prompt('Display name (English):', lastProg.title);
+  if(nameEN===null) return;
+  const template = {
+    value: key,
+    labels: { vi:nameVI||lastProg.title, en:nameEN||lastProg.title,
+              zh:nameEN||lastProg.title, ja:nameEN||lastProg.title, de:nameEN||lastProg.title },
+    description: lastProg.description||'',
+    brand: currentBrand, source: 'User Template',
+    programData: {
+      title:lastProg.title, description:lastProg.description,
+      rungs:lastProg.rungs, scl_code:lastProg.scl_code,
+      io_list:lastProg.io_list, notes:lastProg.notes
+    }
+  };
+  savedProgTypes.push(template);
+  saveProgTypes(); renderProgTypes();
+  const btn = document.getElementById('btn-template');
+  if(btn){ btn.textContent='✓ Saved!'; setTimeout(()=>btn.innerHTML='📌 Template',2000); }
+}
+
+// History
+async function saveToHistory(){
+  if(!lastProg){alert(T('noProgSave'));return;}
+  await fetch(`${BAPI}/plc/history/save`,{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+    body:JSON.stringify({title:lastProg.title,description:lastProg.description||'',prog_type:document.getElementById('prog-type').value,cpu_model:document.getElementById('cpu').value,block_type:document.getElementById('block').value,scl_code:lastProg.scl_code||'',ladder_json:JSON.stringify(lastProg.rungs||[]),io_list:JSON.stringify(lastProg.io_list||[])})});
+  const b=document.querySelector('.ba.save');b.innerHTML='✓ '+T('savedOK');setTimeout(()=>b.innerHTML='💾 <span data-i18n="btnSave">'+T('btnSave')+'</span>',2000);
+}
+
+async function loadHistory(){
+  const res=await fetch(`${BAPI}/plc/history`,{headers:{'Authorization':'Bearer '+token}});
+  const items=await res.json();
+  const hl=document.getElementById('hist-list');
+  if(!items.length){hl.innerHTML=`<div data-empty style="text-align:center;color:var(--text-dim);padding:40px;font-size:13px;">${T('histEmpty')}</div>`;return;}
+  hl.innerHTML=items.map(item=>`
+    <div class="hist-item" onclick="loadHistItem(${item.id})">
+      <div>
+        <div class="hist-title">${item.title||'Chương trình #'+item.id}</div>
+        <div class="hist-meta">${item.cpu_model||''} · ${item.created_at?.substring(0,16)||''}</div>
+      </div>
+      <button class="hist-del" onclick="event.stopPropagation();delHist(${item.id})">🗑</button>
+    </div>`).join('');
+}
+
+async function loadHistItem(id){
+  const res=await fetch(`${BAPI}/plc/history/${id}`,{headers:{'Authorization':'Bearer '+token}});
+  const item=await res.json();
+  try{
+    lastProg={title:item.title,description:item.description,scl_code:item.scl_code,rungs:JSON.parse(item.ladder_json||'[]'),io_list:JSON.parse(item.io_list||'[]')};
+    renderAll(lastProg);ls('form');rs('ladder');
+  }catch(e){alert(T('loadErr'));}
+}
+
+async function delHist(id){
+  if(!confirm(T('deletConfirm')))return;
+  await fetch(`${BAPI}/plc/history/${id}`,{method:'DELETE',headers:{'Authorization':'Bearer '+token}});
+  loadHistory();
+}
+
+function copyCode(){
+  navigator.clipboard.writeText(document.getElementById('code-out').textContent).then(()=>{
+    const b=document.querySelector('.ba:not(.pdf):not(.save)');b.innerHTML='✓ '+T('copiedOK');setTimeout(()=>b.innerHTML='📋 <span data-i18n="btnCopy">'+T('btnCopy')+'</span>',2000);
+  });
+}
+
+async function exportPDF(){
+  if(!lastProg){alert(T('noProgExp'));return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const W=297,H=210,M=14;let y=M;
+  doc.setFillColor(10,14,23);doc.rect(0,0,W,H,'F');
+  doc.setFillColor(13,31,60);doc.rect(0,0,W,18,'F');
+  doc.setDrawColor(0,170,255);doc.setLineWidth(0.5);doc.line(0,18,W,18);
+  doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(0,170,255);
+  doc.text('PLC AI STUDIO – SIEMENS S7',M,12);
+  doc.setFontSize(9);doc.setTextColor(107,138,170);
+  doc.text(`IEC 61131-3 | User: ${currentUser.email||''} | ${new Date().toLocaleDateString('vi-VN')}`,W-M,12,{align:'right'});
+  y=26;
+  doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(224,234,248);doc.text(lastProg.title,M,y);y+=6;
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(107,138,170);
+  doc.text(lastProg.description||'',M,y);y+=5;
+  doc.setDrawColor(30,58,95);doc.setLineWidth(0.3);doc.line(M,y,W-M,y);y+=5;
+  const svgEls=document.querySelectorAll('#ladder-out .rung-sw svg');
+  for(let i=0;i<svgEls.length;i++){
+    const svg=svgEls[i];const rung=lastProg.rungs[i];
+    const svgStr=new XMLSerializer().serializeToString(svg);
+    const blob=new Blob([svgStr],{type:'image/svg+xml'});const url=URL.createObjectURL(blob);
+    await new Promise(res=>{
+      const img=new Image();
+      img.onload=()=>{
+        const scale=0.26;const iw=img.width*scale;const ih=img.height*scale;
+        if(y+ih+10>H-M){doc.addPage();doc.setFillColor(10,14,23);doc.rect(0,0,W,H,'F');y=M;}
+        doc.setFillColor(17,24,39);doc.setDrawColor(30,58,95);doc.roundedRect(M,y,W-M*2,ih+8,2,2,'FD');
+        doc.setFillColor(0,102,204);doc.roundedRect(M,y,14,5,1,1,'F');
+        doc.setFont('helvetica','bold');doc.setFontSize(6);doc.setTextColor(255,255,255);doc.text(`N${rung.number}`,M+7,y+3.5,{align:'center'});
+        if(rung.comment){doc.setFont('helvetica','italic');doc.setFontSize(7);doc.setTextColor(255,214,0);doc.text('// '+rung.comment,M+16,y+3.5);}
+        const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;
+        const ctx=canvas.getContext('2d');ctx.fillStyle='#07111f';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0);
+        doc.addImage(canvas.toDataURL('image/png'),'PNG',M+1,y+5,iw,ih);
+        URL.revokeObjectURL(url);y+=ih+12;res();
+      };img.onerror=()=>{URL.revokeObjectURL(url);res();};img.src=url;
+    });
+  }
+  doc.addPage();doc.setFillColor(10,14,23);doc.rect(0,0,W,H,'F');
+  doc.setFillColor(13,31,60);doc.rect(0,0,W,12,'F');
+  doc.setDrawColor(0,170,255);doc.line(0,12,W,12);
+  doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(0,170,255);doc.text('SCL CODE',M,9);y=20;
+  doc.setFillColor(6,13,26);doc.setDrawColor(30,58,95);doc.roundedRect(M,y,W-M*2,H-y-M,3,3,'FD');
+  doc.setFont('courier','normal');doc.setFontSize(7.5);doc.setTextColor(201,215,232);
+  const lines=document.getElementById('code-out').textContent.split('\n');let cy2=y+6;
+  lines.forEach(line=>{
+    if(cy2>H-M-4)return;
+    let color=[201,215,232];
+    if(line.trim().startsWith('(*')||line.trim().startsWith('//'))color=[96,139,78];
+    else if(/\b(IF|THEN|ELSE|END_IF|AND|OR|NOT|TON|TOF|CTU)\b/.test(line))color=[86,156,214];
+    doc.setTextColor(...color);doc.text(line.substring(0,120),M+4,cy2);cy2+=3.8;
+  });
+  const pc=doc.getNumberOfPages();
+  for(let i=1;i<=pc;i++){doc.setPage(i);doc.setDrawColor(30,58,95);doc.line(0,H-8,W,H-8);doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(107,138,170);doc.text('PLCSmart SaaS | Siemens S7 | IEC 61131-3',M,H-4);doc.text(`Trang ${i} / ${pc}`,W-M,H-4,{align:'right'});}
+  doc.save(`${lastProg.title.replace(/[^a-zA-Z0-9]/g,'_')}_PLC.pdf`);
+}
+
+async function sendChat(){
+  const inp=document.getElementById('chat-inp');const msg=inp.value.trim();if(!msg)return;
+  inp.value='';appendMsg('user',msg);chatHist.push({role:'user',content:msg});
+  const bs=document.getElementById('btn-send');bs.disabled=true;
+  try{
+    const res=await fetch(`${BAPI}/plc/chat`,{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({messages:chatHist.slice(-10),system:BRAND_CONFIG[currentBrand].chatSystem})});
+    const data=await res.json();
+    const reply=data.content.map(c=>c.text||'').join('');
+    chatHist.push({role:'assistant',content:reply});appendMsg('ai',reply);
+  }catch(e){appendMsg('ai','❌ Lỗi: '+e.message);}
+  finally{bs.disabled=false;}
+}
+function appendMsg(role,text){
+  const msgs=document.getElementById('chat-msgs');
+  const div=document.createElement('div');div.className='msg '+role;
+  const fmt=text.replace(/```(\w*)\n?([\s\S]*?)```/g,(_,l,c)=>`<pre>${esc(c.trim())}</pre>`).replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+  div.innerHTML=`<div class="ava">${role==='ai'?'AI':'U'}</div><div class="bubble">${fmt}</div>`;
+  msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;
+}
+function openLadderEditor(){
+  // Bridge current program data to Ladder Editor via localStorage
+  if(lastProg && lastProg.rungs){
+    localStorage.setItem('plc_ladder_import', JSON.stringify({
+      name: lastProg.title,
+      rungs: lastProg.rungs
+    }));
+  }
+  window.open('/editor','_blank');
+}
+
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ── Export SCL file for TIA Portal ──
+function exportSCL(){
+  if(!lastProg){alert(T('noProgExp'));return;}
+  const cpu = document.getElementById('cpu').value;
+  const block = document.getElementById('block').value;
+  const blockType = block.startsWith('FC')?'FUNCTION':block.startsWith('FB')?'FUNCTION_BLOCK':'ORGANIZATION_BLOCK';
+  const blockNum = block.startsWith('OB')?'OB1':block.startsWith('FC')?'FC1':'FB1';
+  const blockName = lastProg.title.replace(/[^a-zA-Z0-9_]/g,'_').substring(0,24);
+
+  // Build TIA Portal compatible SCL file
+  const scl = `//=============================================================
+// TIA Portal SCL Export
+// Program : ${lastProg.title}
+// CPU     : ${cpu}
+// Block   : ${blockNum} (${blockType})
+// Generated by PLCSmart SaaS
+// Date    : ${new Date().toLocaleDateString('vi-VN')}
+//=============================================================
+
+${blockType} "${blockName}"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+
+VAR_INPUT
+END_VAR
+
+VAR_OUTPUT  
+END_VAR
+
+VAR
+END_VAR
+
+BEGIN
+${lastProg.scl_code}
+
+END_${blockType}
+`;
+
+  // Download .scl file
+  const blob = new Blob([scl], {type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${blockName}.scl`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+
+  // Show import guide
+  showImportGuide('scl', blockName);
+}
+
+// ── Export AWL/STL file for TIA Portal ──
+function exportAWL(){
+  if(!lastProg){alert(T('noProgExp'));return;}
+  const cpu = document.getElementById('cpu').value;
+  const block = document.getElementById('block').value;
+  const blockName = lastProg.title.replace(/[^a-zA-Z0-9_]/g,'_').substring(0,24);
+
+  // Generate STL from SCL logic
+  const awl = generateAWL(lastProg, blockName, cpu, block);
+
+  const blob = new Blob([awl], {type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${blockName}.awl`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+
+  showImportGuide('awl', blockName);
+}
+
+function generateAWL(prog, blockName, cpu, block){
+  const blockNum = block.startsWith('FC')?'FC1':block.startsWith('FB')?'FB1':'OB1';
+  let awl = `//============================================================
+// TIA Portal AWL/STL Export
+// Program : ${prog.title}
+// CPU     : ${cpu}
+// Block   : ${blockNum}
+// Generated by PLCSmart SaaS
+// Date    : ${new Date().toLocaleDateString('vi-VN')}
+//============================================================
+
+FUNCTION_BLOCK "${blockName}"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+
+VAR
+END_VAR
+
+BEGIN
+NETWORK
+TITLE = ${prog.title}
+// ${prog.description}
+
+`;
+
+  // Convert rungs to AWL/STL
+  (prog.rungs||[]).forEach((rung, i) => {
+    awl += `// --- Rung ${rung.number}: ${rung.comment||''} ---\n`;
+    const branches = rung.branches||[];
+    const output = rung.output||null;
+
+    if(branches.length === 1){
+      // Series contacts
+      branches[0].forEach((el, ci) => {
+        const addr = el.addr||'M0.0';
+        if(el.type==='NO'||el.type==='COIL_MEM'){
+          awl += ci===0 ? `      A     "${el.tag}"; // ${addr}\n` : `      A     "${el.tag}"; // ${addr}\n`;
+        } else if(el.type==='NC'){
+          awl += `      AN    "${el.tag}"; // ${addr}\n`;
+        }
+      });
+    } else {
+      // Parallel branches
+      awl += `      O(\n`;
+      branches.forEach((branch, bi) => {
+        if(bi > 0) awl += `      O\n`;
+        branch.forEach((el, ci) => {
+          const op = el.type==='NC' ? 'AN' : 'A';
+          awl += `      ${op}    "${el.tag}"; // ${el.addr||''}\n`;
+        });
+      });
+      awl += `      )\n`;
+    }
+
+    // Output
+    if(output){
+      const oAddr = output.addr||'Q0.0';
+      if(output.type==='COIL') awl += `      =     "${output.tag}"; // ${oAddr}\n`;
+      else if(output.type==='SET') awl += `      S     "${output.tag}"; // ${oAddr}\n`;
+      else if(output.type==='RESET') awl += `      R     "${output.tag}"; // ${oAddr}\n`;
+      else if(output.type==='TON') awl += `      CALL  "${output.tag}", "${output.tag}_DB"\n      IN    :="${output.tag}_EN"\n      PT    :=${output.pt||'T#5S'}\n`;
+      else if(output.type==='CTU') awl += `      CALL  "${output.tag}", "${output.tag}_DB"\n      CU    :="${output.tag}_CU"\n      PV    :=${output.pv||10}\n`;
+    }
+    awl += `\n`;
+  });
+
+  awl += `END_FUNCTION_BLOCK\n\n`;
+
+  // Add tag table comment
+  awl += `//============================================================\n// TAG TABLE (copy vào PLC Tags trong TIA Portal)\n//============================================================\n`;
+  (prog.io_list||[]).forEach(io => {
+    awl += `// "${io.tag}" | ${io.addr} | Bool | ${io.desc||''}\n`;
+  });
+
+  return awl;
+}
+
+// ── Show import guide modal ──
+// ── Export GX Works (Mitsubishi) ──
+function exportGX(){
+  if(!lastProg){alert(T('noProgExp'));return;}
+  const cpu = document.getElementById('cpu').value;
+  const blockName = lastProg.title.replace(/[^a-zA-Z0-9_]/g,'_').substring(0,24);
+  const gx = `(*=============================================================
+  GX Works3 Structured Text Export
+  Program : ${lastProg.title}
+  CPU     : ${cpu} (Mitsubishi MELSEC)
+  Standard: IEC 61131-3 / GX Works3
+  Generated by PLCSmart SaaS
+  Date    : ${new Date().toLocaleDateString()}
+=============================================================*)
+
+(* ${lastProg.description||''} *)
+
+${lastProg.scl_code}
+
+(*
+  DEVICE TABLE:
+${(lastProg.io_list||[]).map(io=>`  ${io.tag.padEnd(20)} ${io.addr.padEnd(8)} ${io.type.padEnd(10)} ${io.desc||''}`).join('\n')}
+*)
+`;
+  const blob = new Blob([gx],{type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`${blockName}.gx`;a.click();URL.revokeObjectURL(a.href);
+  showImportGuide('gx', blockName);
+}
+
+// ── Export L5X (Allen Bradley Studio 5000) ──
+function exportRS(){
+  if(!lastProg){alert(T('noProgExp'));return;}
+  const cpu = document.getElementById('cpu').value;
+  const blockName = lastProg.title.replace(/[^a-zA-Z0-9_]/g,'_').substring(0,24);
+  const l5x = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  Studio 5000 / RSLogix 5000 L5X Export
+  Program : ${lastProg.title}
+  CPU     : ${cpu} (Allen Bradley)
+  Generated by PLCSmart SaaS | Date: ${new Date().toLocaleDateString()}
+-->
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="33.00">
+  <Controller>
+    <Programs>
+      <Program Name="${blockName}">
+        <Routines>
+          <Routine Name="MainRoutine" Type="ST">
+            <STContent>
+(* ${lastProg.title} - ${lastProg.description||''} *)
+
+${lastProg.scl_code}
+            </STContent>
+          </Routine>
+        </Routines>
+        <Tags>
+${(lastProg.io_list||[]).map(io=>`          <Tag Name="${io.tag}" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+            <Description>${io.desc||io.type}</Description>
+          </Tag>`).join('\n')}
+        </Tags>
+      </Program>
+    </Programs>
+  </Controller>
+</RSLogix5000Content>`;
+  const blob = new Blob([l5x],{type:'text/xml;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`${blockName}.L5X`;a.click();URL.revokeObjectURL(a.href);
+  showImportGuide('rs', blockName);
+}
+
+function showImportGuide(type, blockName){
+  const modal = document.getElementById('modal-import');
+  const title = document.getElementById('modal-title');
+  const body = document.getElementById('modal-body');
+
+  if(type==='scl'){
+    title.textContent = '📥 Import .SCL → TIA Portal (Siemens)';
+    body.innerHTML = `
+      <div class="step"><div class="step-num">1</div><div class="step-text">Mở TIA Portal → mở Project của bạn</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">Trong <strong>Project tree</strong> → click chuột phải vào <code>Program blocks</code></div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">Chọn <code>Add new block</code> → chọn <strong>SCL</strong> → đặt tên block</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-text">Mở file <code>${blockName}.scl</code> → <strong>Copy toàn bộ</strong> → Paste vào TIA Portal</div></div>
+      <div class="step"><div class="step-num">5</div><div class="step-text">Nhấn <code>Compile (Ctrl+B)</code> → kiểm tra lỗi</div></div>
+      <div class="tip-box"><strong>💡</strong> Tạo PLC Tags trước cho tất cả địa chỉ I/O trong <code>PLC Tags → Default tag table</code></div>
+      <div class="dl-row"><button class="ba tia" style="width:100%" onclick="exportSCL();closeModal()">⬇ Tải lại .SCL</button></div>`;
+  } else if(type==='awl'){
+    title.textContent = '📥 Import .AWL → TIA Portal (Siemens)';
+    body.innerHTML = `
+      <div class="step"><div class="step-num">1</div><div class="step-text">Mở TIA Portal → click chuột phải vào <code>Program blocks</code></div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">Chọn <code>Add new block</code> → chọn <strong>STL</strong></div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">Mở file <code>${blockName}.awl</code> → Copy phần code trong <code>BEGIN...END</code> → Paste vào block</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-text">Nhấn <code>Compile (Ctrl+B)</code> → thêm PLC Tags theo bảng cuối file</div></div>
+      <div class="tip-box"><strong>💡</strong> AWL/STL phù hợp cho S7-300/400. Với S7-1200/1500 nên dùng SCL.</div>
+      <div class="dl-row"><button class="ba awl" style="width:100%" onclick="exportAWL();closeModal()">⬇ Tải lại .AWL</button></div>`;
+  } else if(type==='gx'){
+    title.textContent = '📥 Import .GX → GX Works3 (Mitsubishi)';
+    body.innerHTML = `
+      <div class="step"><div class="step-num">1</div><div class="step-text">Mở <strong>GX Works3</strong> → tạo New Project → chọn Series CPU phù hợp (FX5U/Q/iQ-R)</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">Trong <strong>Navigation</strong> → <code>Program</code> → click chuột phải → <code>Add New Data</code></div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">Chọn <strong>Structured Text (ST)</strong> làm loại ngôn ngữ</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-text">Mở file <code>${blockName}.gx</code> → Copy code ST → Paste vào program block</div></div>
+      <div class="step"><div class="step-num">5</div><div class="step-text">Khai báo <strong>Global Label</strong> cho các thiết bị X, Y, M, T, C trong <code>Global Label Setting</code></div></div>
+      <div class="step"><div class="step-num">6</div><div class="step-text">Nhấn <code>Convert (F4)</code> → <code>Rebuild All</code> → Download to PLC</div></div>
+      <div class="tip-box"><strong>💡 Mitsubishi Device:</strong> X=Input, Y=Output, M=Internal relay, T=Timer(K×100ms), C=Counter, D=Data register</div>
+      <div class="dl-row"><button class="ba gx" style="width:100%;display:block" onclick="exportGX();closeModal()">⬇ Tải lại .GX</button></div>`;
+  } else if(type==='rs'){
+    title.textContent = '📥 Import .L5X → Studio 5000 (Allen Bradley)';
+    body.innerHTML = `
+      <div class="step"><div class="step-num">1</div><div class="step-text">Mở <strong>Studio 5000 Logix Designer</strong> → mở hoặc tạo Project mới</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">Trong <strong>Controller Organizer</strong> → click chuột phải vào <code>Tasks → MainTask → MainProgram</code></div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">Chọn <code>Import Routine</code> → chọn file <code>${blockName}.L5X</code></div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-text">Nếu import thủ công: tạo <strong>Structured Text Routine</strong> → copy code từ file .L5X (trong thẻ &lt;STContent&gt;)</div></div>
+      <div class="step"><div class="step-num">5</div><div class="step-text">Khai báo Tags trong <code>Controller Tags</code> theo danh sách I/O</div></div>
+      <div class="step"><div class="step-num">6</div><div class="step-text">Nhấn <code>Verify Controller (Ctrl+K)</code> → Download khi không còn lỗi</div></div>
+      <div class="tip-box"><strong>💡 Allen Bradley:</strong> CompactLogix/ControlLogix dùng Tag-based (tên biến), MicroLogix dùng địa chỉ file (I:0/0, O:0/0, B3/0)</div>
+      <div class="dl-row"><button class="ba rstxt" style="width:100%;display:block" onclick="exportRS();closeModal()">⬇ Tải lại .L5X</button></div>`;
+  }
+  modal.style.display = 'flex';
+}
+
+function closeModal(){
+  document.getElementById('modal-import').style.display='none';
+}
+</script>
+</body>
+</html>

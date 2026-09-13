@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLCSmart — AI-Powered PLC Programming</title>
+<meta name="description" content="Generate Ladder Diagrams for Siemens, Mitsubishi & Allen Bradley with AI. Simulate, edit and export to TIA Portal in seconds.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0a0e1a;
+  --bg2:#0f1525;
+  --bg3:#151c30;
+  --border:rgba(255,255,255,0.08);
+  --accent:#2563eb;
+  --accent2:#3b82f6;
+  --green:#10b981;
+  --yellow:#f59e0b;
+  --red:#ef4444;
+  --text:#f1f5f9;
+  --text-dim:#94a3b8;
+  --glow:rgba(37,99,235,0.3);
+}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;overflow-x:hidden;}
+
+/* ── GRID BACKGROUND ── */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(37,99,235,0.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(37,99,235,0.04) 1px,transparent 1px);
+  background-size:60px 60px;
+  pointer-events:none;z-index:0;
+}
+
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 40px;
+  background:rgba(10,14,26,0.85);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.nav-logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.nav-logo-text{font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.5px;}
+.nav-badge{font-size:9px;font-weight:700;background:var(--green);color:#fff;padding:2px 6px;border-radius:4px;letter-spacing:1px;}
+.nav-links{display:flex;align-items:center;gap:32px;}
+.nav-links a{color:var(--text-dim);text-decoration:none;font-size:14px;font-weight:500;transition:color .2s;}
+.nav-links a:hover{color:var(--text);}
+.nav-cta{display:flex;gap:10px;}
+.btn-outline{padding:8px 20px;border:1px solid var(--border);border-radius:8px;color:var(--text);text-decoration:none;font-size:14px;font-weight:500;transition:all .2s;}
+.btn-outline:hover{border-color:var(--accent2);color:var(--accent2);}
+.btn-primary{padding:8px 20px;background:var(--accent);border-radius:8px;color:#fff;text-decoration:none;font-size:14px;font-weight:600;transition:all .2s;border:none;cursor:pointer;}
+.btn-primary:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:0 8px 24px var(--glow);}
+
+/* ── HERO ── */
+.hero{
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:120px 40px 80px;text-align:center;position:relative;z-index:1;
+}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 16px;border-radius:100px;
+  border:1px solid rgba(37,99,235,0.4);
+  background:rgba(37,99,235,0.08);
+  font-size:12px;font-weight:600;color:var(--accent2);
+  margin-bottom:32px;letter-spacing:0.5px;
+}
+.hero-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hero h1{
+  font-size:clamp(40px,6vw,80px);font-weight:700;line-height:1.05;
+  letter-spacing:-2px;margin-bottom:24px;
+  background:linear-gradient(135deg,#fff 0%,#94a3b8 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.hero h1 span{
+  background:linear-gradient(135deg,var(--accent2),var(--green));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.hero p{
+  font-size:clamp(16px,2vw,20px);color:var(--text-dim);max-width:600px;
+  line-height:1.7;margin-bottom:40px;font-weight:400;
+}
+.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:60px;}
+.btn-hero{
+  padding:14px 32px;border-radius:10px;font-size:16px;font-weight:600;
+  text-decoration:none;transition:all .2s;cursor:pointer;border:none;
+}
+.btn-hero-primary{background:var(--accent);color:#fff;box-shadow:0 0 40px var(--glow);}
+.btn-hero-primary:hover{background:var(--accent2);transform:translateY(-2px);box-shadow:0 8px 40px var(--glow);}
+.btn-hero-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
+.btn-hero-secondary:hover{border-color:var(--accent2);color:var(--accent2);}
+
+/* ── HERO DEMO WINDOW ── */
+.demo-window{
+  width:100%;max-width:900px;border-radius:16px;overflow:hidden;
+  border:1px solid var(--border);box-shadow:0 40px 120px rgba(0,0,0,0.6);
+  background:var(--bg2);
+}
+.demo-titlebar{
+  display:flex;align-items:center;gap:8px;padding:12px 16px;
+  background:var(--bg3);border-bottom:1px solid var(--border);
+}
+.demo-dot{width:12px;height:12px;border-radius:50%;}
+.demo-dot.r{background:#ef4444;} .demo-dot.y{background:#f59e0b;} .demo-dot.g{background:#10b981;}
+.demo-title{flex:1;text-align:center;font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono';}
+.demo-body{padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.demo-left{display:flex;flex-direction:column;gap:12px;}
+.demo-label{font-size:10px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;font-family:'JetBrains Mono';}
+.demo-input{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:13px;}
+.demo-generate{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;cursor:default;margin-top:4px;}
+.demo-right{background:var(--bg);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:0;}
+/* Simplified Ladder SVG */
+.demo-rung{display:flex;align-items:center;gap:0;margin-bottom:12px;}
+
+/* ── STATS ── */
+.stats{
+  display:flex;justify-content:center;gap:60px;flex-wrap:wrap;
+  padding:40px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+  background:var(--bg2);position:relative;z-index:1;
+}
+.stat{text-align:center;}
+.stat-num{font-size:36px;font-weight:700;color:var(--text);letter-spacing:-1px;}
+.stat-label{font-size:13px;color:var(--text-dim);margin-top:4px;}
+
+/* ── FEATURES ── */
+.section{padding:100px 40px;max-width:1200px;margin:0 auto;position:relative;z-index:1;}
+.section-badge{font-size:11px;font-weight:700;color:var(--accent2);letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;}
+.section h2{font-size:clamp(28px,4vw,48px);font-weight:700;letter-spacing:-1px;margin-bottom:16px;line-height:1.1;}
+.section p.sub{font-size:18px;color:var(--text-dim);max-width:560px;line-height:1.6;margin-bottom:60px;}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
+.feature-card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:16px;
+  padding:28px;transition:all .3s;position:relative;overflow:hidden;
+}
+.feature-card::before{
+  content:'';position:absolute;inset:0;opacity:0;transition:opacity .3s;
+  background:radial-gradient(circle at 50% 0%,rgba(37,99,235,0.08),transparent 70%);
+}
+.feature-card:hover{border-color:rgba(37,99,235,0.3);transform:translateY(-4px);}
+.feature-card:hover::before{opacity:1;}
+.feat-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px;}
+.feat-icon.blue{background:rgba(37,99,235,0.15);}
+.feat-icon.green{background:rgba(16,185,129,0.15);}
+.feat-icon.yellow{background:rgba(245,158,11,0.15);}
+.feat-icon.red{background:rgba(239,68,68,0.15);}
+.feat-icon.purple{background:rgba(139,92,246,0.15);}
+.feat-icon.cyan{background:rgba(6,182,212,0.15);}
+.feature-card h3{font-size:18px;font-weight:600;margin-bottom:10px;}
+.feature-card p{font-size:14px;color:var(--text-dim);line-height:1.6;}
+
+/* ── BRANDS ── */
+.brands-section{padding:60px 40px;text-align:center;position:relative;z-index:1;}
+.brands-section h3{font-size:13px;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase;margin-bottom:32px;}
+.brands-row{display:flex;justify-content:center;align-items:center;gap:48px;flex-wrap:wrap;}
+.brand-pill{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 24px;border-radius:100px;
+  border:1px solid var(--border);background:var(--bg2);
+  font-size:15px;font-weight:600;transition:all .2s;
+}
+.brand-pill:hover{border-color:var(--accent2);}
+.brand-dot{width:10px;height:10px;border-radius:50%;}
+
+/* ── PRICING ── */
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:60px;}
+.price-card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:20px;
+  padding:36px;position:relative;transition:all .3s;
+}
+.price-card.featured{
+  border-color:var(--accent);
+  background:linear-gradient(135deg,rgba(37,99,235,0.1),var(--bg2));
+  transform:scale(1.04);
+}
+.price-card.featured::before{
+  content:'MOST POPULAR';position:absolute;top:-12px;left:50%;transform:translateX(-50%);
+  background:var(--accent);color:#fff;font-size:10px;font-weight:700;
+  padding:4px 16px;border-radius:100px;letter-spacing:1px;
+}
+.price-tier{font-size:13px;font-weight:700;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;}
+.price-num{font-size:48px;font-weight:700;letter-spacing:-2px;margin-bottom:4px;}
+.price-num sup{font-size:22px;vertical-align:top;margin-top:12px;font-weight:500;}
+.price-period{font-size:14px;color:var(--text-dim);margin-bottom:28px;}
+.price-features{list-style:none;display:flex;flex-direction:column;gap:12px;margin-bottom:32px;}
+.price-features li{font-size:14px;color:var(--text-dim);display:flex;align-items:center;gap:10px;}
+.price-features li::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0;}
+.price-features li.no::before{content:'✗';color:var(--text-dim);}
+.btn-price{
+  display:block;width:100%;padding:13px;border-radius:10px;
+  text-align:center;font-size:15px;font-weight:600;text-decoration:none;
+  transition:all .2s;border:1px solid var(--border);color:var(--text);
+}
+.btn-price.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn-price.primary:hover{background:var(--accent2);}
+.btn-price:hover:not(.primary){border-color:var(--accent2);color:var(--accent2);}
+
+/* ── CTA SECTION ── */
+.cta-section{
+  margin:60px 40px;border-radius:24px;padding:80px 60px;
+  text-align:center;position:relative;overflow:hidden;z-index:1;
+  background:linear-gradient(135deg,rgba(37,99,235,0.15),rgba(16,185,129,0.08));
+  border:1px solid rgba(37,99,235,0.2);
+}
+.cta-section::before{
+  content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;
+  background:radial-gradient(circle,rgba(37,99,235,0.08) 0%,transparent 60%);
+  animation:rotate 20s linear infinite;
+}
+@keyframes rotate{to{transform:rotate(360deg);}}
+.cta-section h2{font-size:clamp(28px,4vw,48px);font-weight:700;letter-spacing:-1px;margin-bottom:16px;position:relative;}
+.cta-section p{font-size:18px;color:var(--text-dim);margin-bottom:36px;position:relative;}
+.cta-btns{display:flex;gap:12px;justify-content:center;position:relative;}
+
+/* ── FOOTER ── */
+footer{
+  border-top:1px solid var(--border);padding:40px;
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px;
+  position:relative;z-index:1;
+}
+.footer-logo{font-size:16px;font-weight:700;color:var(--text-dim);}
+.footer-links{display:flex;gap:24px;}
+.footer-links a{color:var(--text-dim);text-decoration:none;font-size:13px;transition:color .2s;}
+.footer-links a:hover{color:var(--text);}
+.footer-copy{font-size:12px;color:var(--text-dim);}
+
+/* ── LADDER DEMO SVG ── */
+.ladder-demo{background:var(--bg);border-radius:10px;padding:16px 20px;}
+.lad-rung{display:flex;align-items:center;margin-bottom:8px;font-family:'JetBrains Mono';font-size:9px;}
+.lad-rail{width:6px;height:44px;background:var(--accent2);border-radius:2px;flex-shrink:0;}
+.lad-wire{height:2px;background:rgba(255,255,255,0.15);flex:1;}
+.lad-contact{width:34px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;}
+.lad-contact-sym{display:flex;align-items:center;}
+.lad-vl{width:2px;height:18px;border-radius:1px;}
+.lad-coil{width:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+
+@media(max-width:768px){
+  nav{padding:12px 20px;}
+  .nav-links{display:none;}
+  .hero{padding:100px 20px 60px;}
+  .features-grid,.pricing-grid{grid-template-columns:1fr;}
+  .price-card.featured{transform:scale(1);}
+  .demo-body{grid-template-columns:1fr;}
+  .stats{gap:32px;}
+  footer{flex-direction:column;text-align:center;}
+  .cta-section{padding:50px 24px;margin:30px 16px;}
+  .section{padding:60px 20px;}
+  .brands-row{gap:16px;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">
+    <div class="nav-logo-icon">⚡</div>
+    <span class="nav-logo-text">PLCSmart</span>
+    <span class="nav-badge">BETA</span>
+  </a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#brands">Supported PLCs</a>
+    <a href="/app">Demo</a>
+  </div>
+  <div class="nav-cta">
+    <a href="/login" class="btn-outline">Sign In</a>
+    <a href="/register" class="btn-primary">Start Free →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">
+    <span></span> AI-Powered PLC Programming · Now in Beta
+  </div>
+  <h1>Generate Ladder Diagrams<br><span>in Seconds with AI</span></h1>
+  <p>Describe your automation logic in plain text. PLCSmart generates complete Ladder Diagrams for Siemens S7, Mitsubishi MELSEC and Allen Bradley — ready to simulate and export.</p>
+  <div class="hero-cta">
+    <a href="/register" class="btn-hero btn-hero-primary">Start Free — No Credit Card</a>
+    <a href="/app" class="btn-hero btn-hero-secondary">▶ Watch Demo</a>
+  </div>
+
+  <!-- Demo window -->
+  <div class="demo-window">
+    <div class="demo-titlebar">
+      <div class="demo-dot r"></div>
+      <div class="demo-dot y"></div>
+      <div class="demo-dot g"></div>
+      <span class="demo-title">PLCSmart Studio — Siemens S7-1200</span>
+    </div>
+    <div class="demo-body">
+      <div class="demo-left">
+        <div class="demo-label">Program Description</div>
+        <div class="demo-input">Motor start/stop with self-holding. START (I0.0) → run. STOP (I0.1) → stop. Overload protection (I0.2).</div>
+        <div class="demo-label" style="margin-top:8px;">PLC Brand</div>
+        <div style="display:flex;gap:8px;">
+          <div style="padding:6px 12px;background:rgba(37,99,235,0.2);border:1px solid var(--accent2);border-radius:6px;font-size:12px;color:var(--accent2);font-weight:600;">🔷 Siemens S7</div>
+          <div style="padding:6px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--text-dim);">🔴 Mitsubishi</div>
+          <div style="padding:6px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--text-dim);">🟡 AB</div>
+        </div>
+        <div class="demo-generate">⚡ Generate Ladder Diagram</div>
+        <div style="margin-top:12px;padding:10px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:8px;">
+          <div style="font-size:10px;color:var(--green);font-weight:700;margin-bottom:6px;">✓ Generated in 2.3s</div>
+          <div style="font-size:10px;color:var(--text-dim);">2 Rungs · SCL exported · Ready to simulate</div>
+        </div>
+      </div>
+      <div class="ladder-demo">
+        <div style="font-size:9px;color:#f59e0b;font-family:'JetBrains Mono';margin-bottom:12px;font-style:italic;">// Motor Start/Stop Self-Holding</div>
+        <!-- Rung 1 -->
+        <svg width="100%" viewBox="0 0 320 90" style="margin-bottom:8px;">
+          <rect x="0" y="10" width="8" height="70" fill="#3b82f6" rx="2"/>
+          <line x1="8" y1="45" x2="320" y2="45" stroke="rgba(255,255,255,0.1)" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <!-- START NO -->
+          <line x1="8" y1="45" x2="36" y2="45" stroke="#3b82f6" stroke-width="2"/>
+          <line x1="36" y1="28" x2="36" y2="62" stroke="#10b981" stroke-width="2.5"/>
+          <line x1="58" y1="28" x2="58" y2="62" stroke="#10b981" stroke-width="2.5"/>
+          <line x1="58" y1="45" x2="76" y2="45" stroke="#3b82f6" stroke-width="2"/>
+          <text x="47" y="22" text-anchor="middle" font-size="8" fill="#10b981" font-family="JetBrains Mono">START</text>
+          <text x="47" y="74" text-anchor="middle" font-size="7" fill="#64748b" font-family="JetBrains Mono">I0.0</text>
+          <!-- MOTOR NO (self-hold) parallel below -->
+          <line x1="14" y1="45" x2="14" y2="75" stroke="#3b82f6" stroke-width="2"/>
+          <line x1="14" y1="75" x2="36" y2="75" stroke="#3b82f6" stroke-width="2"/>
+          <line x1="36" y1="62" x2="36" y2="88" stroke="#10b981" stroke-width="2.5"/>
+          <line x1="58" y1="62" x2="58" y2="88" stroke="#10b981" stroke-width="2.5"/>
+          <line x1="58" y1="75" x2="76" y2="75" stroke="#3b82f6" stroke-width="2"/>
+          <line x1="76" y1="45" x2="76" y2="75" stroke="#3b82f6" stroke-width="2"/>
+          <text x="47" y="54" text-anchor="middle" font-size="8" fill="#10b981" font-family="JetBrains Mono">MTR</text>
+          <!-- OVERLOAD NC -->
+          <line x1="76" y1="45" x2="104" y2="45" stroke="#3b82f6" stroke-width="2"/>
+          <line x1="104" y1="28" x2="104" y2="62" stroke="#ef4444" stroke-width="2.5"/>
+          <line x1="126" y1="28" x2="126" y2="62" stroke="#ef4444" stroke-width="2.5"/>
+          <line x1="104" y1="58" x2="126" y2="32" stroke="#ef4444" stroke-width="2"/>
+          <line x1="126" y1="45" x2="240" y2="45" stroke="#3b82f6" stroke-width="2"/>
+          <text x="115" y="22" text-anchor="middle" font-size="8" fill="#ef4444" font-family="JetBrains Mono">STOP</text>
+          <text x="115" y="74" text-anchor="middle" font-size="7" fill="#64748b" font-family="JetBrains Mono">I0.1</text>
+          <!-- COIL -->
+          <path d="M240,30 A15,15 0 0,0 240,60" fill="none" stroke="#f59e0b" stroke-width="2.5"/>
+          <path d="M264,30 A15,15 0 0,1 264,60" fill="none" stroke="#f59e0b" stroke-width="2.5"/>
+          <line x1="264" y1="45" x2="312" y2="45" stroke="#3b82f6" stroke-width="2"/>
+          <text x="252" y="22" text-anchor="middle" font-size="8" fill="#f59e0b" font-family="JetBrains Mono">MOTOR</text>
+          <text x="252" y="74" text-anchor="middle" font-size="7" fill="#64748b" font-family="JetBrains Mono">Q0.0</text>
+          <rect x="312" y="10" width="8" height="70" fill="#3b82f6" rx="2"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat"><div class="stat-num">3</div><div class="stat-label">PLC Brands Supported</div></div>
+  <div class="stat"><div class="stat-num">&lt;3s</div><div class="stat-label">Average Generation Time</div></div>
+  <div class="stat"><div class="stat-num">5</div><div class="stat-label">Languages</div></div>
+  <div class="stat"><div class="stat-num">100%</div><div class="stat-label">Web-based, No Install</div></div>
+</div>
+
+<!-- BRANDS -->
+<div class="brands-section" id="brands">
+  <h3>Supported PLC Platforms</h3>
+  <div class="brands-row">
+    <div class="brand-pill"><div class="brand-dot" style="background:#2563eb"></div> Siemens S7-1200 / 1500 / 300</div>
+    <div class="brand-pill"><div class="brand-dot" style="background:#ef4444"></div> Mitsubishi FX3U / FX5U / Q / iQ-R</div>
+    <div class="brand-pill"><div class="brand-dot" style="background:#f59e0b"></div> Allen Bradley MicroLogix / CompactLogix</div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<div class="section" id="features">
+  <div class="section-badge">Core Features</div>
+  <h2>Everything you need to<br>program PLCs faster</h2>
+  <p class="sub">From description to deployable code in seconds. No PLC programming experience required to get started.</p>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feat-icon blue">🤖</div>
+      <h3>AI Ladder Generation</h3>
+      <p>Describe your logic in plain language. Get complete IEC 61131-3 Ladder Diagrams with contacts, coils, timers and counters.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feat-icon green">▶</div>
+      <h3>Real-Time Simulation</h3>
+      <p>Test your program instantly. Toggle inputs, watch power flow, see timer countdowns — without any PLC hardware.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feat-icon yellow">✏️</div>
+      <h3>Visual Editor</h3>
+      <p>Edit AI-generated programs directly. Drag contacts, add rungs, modify properties — all in a visual ladder interface.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feat-icon red">📚</div>
+      <h3>Knowledge Base</h3>
+      <p>Upload your PLC manuals as PDF. AI learns your specific symbols, addressing conventions and programming rules.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feat-icon purple">⬇</div>
+      <h3>Direct Export</h3>
+      <p>Export to TIA Portal (.scl/.awl), GX Works (.gx) or Studio 5000 (.L5X). Import-ready with step-by-step guide.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feat-icon cyan">🌐</div>
+      <h3>Multi-Language</h3>
+      <p>Full interface in English, Vietnamese, Chinese, Japanese and German. AI generates comments in your chosen language.</p>
+    </div>
+  </div>
+</div>
+
+<!-- PRICING -->
+<div class="section" id="pricing">
+  <div class="section-badge">Simple Pricing</div>
+  <h2>Start free, scale as you grow</h2>
+  <p class="sub">No contracts. Cancel anytime. All plans include full access to AI generation and simulation.</p>
+  <div class="pricing-grid">
+    <div class="price-card">
+      <div class="price-tier">Free</div>
+      <div class="price-num"><sup>$</sup>0</div>
+      <div class="price-period">forever</div>
+      <ul class="price-features">
+        <li>10 generations / month</li>
+        <li>All 3 PLC brands</li>
+        <li>Simulation included</li>
+        <li>SCL/AWL export</li>
+        <li class="no">Knowledge Base PDF</li>
+        <li class="no">Template library</li>
+        <li class="no">Priority support</li>
+      </ul>
+      <a href="/register" class="btn-price">Get Started Free</a>
+    </div>
+    <div class="price-card featured">
+      <div class="price-tier">Pro</div>
+      <div class="price-num"><sup>$</sup>19</div>
+      <div class="price-period">per month</div>
+      <ul class="price-features">
+        <li>200 generations / month</li>
+        <li>All 3 PLC brands</li>
+        <li>Simulation included</li>
+        <li>All export formats</li>
+        <li>Knowledge Base (5 PDFs)</li>
+        <li>Template library</li>
+        <li>Email support</li>
+      </ul>
+      <a href="/register?plan=pro" class="btn-price primary">Start Pro — $19/mo</a>
+    </div>
+    <div class="price-card">
+      <div class="price-tier">Enterprise</div>
+      <div class="price-num"><sup>$</sup>99</div>
+      <div class="price-period">per month</div>
+      <ul class="price-features">
+        <li>Unlimited generations</li>
+        <li>All 3 PLC brands</li>
+        <li>Simulation included</li>
+        <li>All export formats</li>
+        <li>Unlimited PDF uploads</li>
+        <li>Team seats (5 users)</li>
+        <li>Priority support + calls</li>
+      </ul>
+      <a href="mailto:sales@plcsmart.io" class="btn-price">Contact Sales</a>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta-section">
+  <h2>Ready to code faster?</h2>
+  <p>Join engineers already using PLCSmart to cut programming time by 10×</p>
+  <div class="cta-btns">
+    <a href="/register" class="btn-hero btn-hero-primary">Start Free Today →</a>
+    <a href="mailto:hello@plcsmart.io" class="btn-hero btn-hero-secondary">Talk to Us</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">⚡ PLCSmart</div>
+  <div class="footer-links">
+    <a href="/app">App</a>
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="mailto:hello@plcsmart.io">Contact</a>
+    <a href="/privacy">Privacy</a>
+  </div>
+  <div class="footer-copy">© 2025 PLCSmart. All rights reserved.</div>
+</footer>
+
+</body>
+</html>

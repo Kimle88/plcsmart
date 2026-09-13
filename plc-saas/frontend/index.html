@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLCSmart – Đăng nhập</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Rajdhani',sans-serif;background:#0a0e17;color:#e0eaf8;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.025) 2px,rgba(0,0,0,0.025) 4px);pointer-events:none;}
+
+.bg-glow{position:fixed;top:20%;left:50%;transform:translateX(-50%);width:600px;height:300px;background:radial-gradient(ellipse,rgba(0,100,200,0.15),transparent 70%);pointer-events:none;}
+
+.card{background:#111827;border:1px solid #1e3a5f;border-radius:12px;padding:40px;width:100%;max-width:420px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+.card::before{content:'';position:absolute;top:0;left:20px;right:20px;height:2px;background:linear-gradient(90deg,transparent,#00aaff,#009999,#00aaff,transparent);border-radius:2px;}
+
+.logo{text-align:center;margin-bottom:32px;}
+.logo-icon{font-size:36px;margin-bottom:8px;}
+.logo-title{font-size:24px;font-weight:700;letter-spacing:3px;color:#00aaff;text-shadow:0 0 20px rgba(0,170,255,0.4);}
+.logo-sub{font-size:11px;color:#6b8aaa;letter-spacing:2px;margin-top:4px;}
+
+.tabs{display:flex;background:#0a0e17;border:1px solid #1e3a5f;border-radius:8px;padding:4px;margin-bottom:24px;gap:4px;}
+.tab{flex:1;padding:8px;text-align:center;font-size:12px;font-weight:700;letter-spacing:1px;color:#6b8aaa;cursor:pointer;border-radius:6px;transition:all .2s;text-transform:uppercase;}
+.tab.active{background:#1a2235;color:#00aaff;}
+
+.field{margin-bottom:16px;}
+.label{font-size:10px;font-weight:700;letter-spacing:1.5px;color:#6b8aaa;text-transform:uppercase;margin-bottom:6px;display:block;}
+.input{width:100%;background:#1a2235;border:1px solid #2a4a6f;border-radius:6px;color:#e0eaf8;font-family:'JetBrains Mono',monospace;font-size:13px;padding:10px 14px;outline:none;transition:all .2s;}
+.input:focus{border-color:#00aaff;box-shadow:0 0 0 2px rgba(0,170,255,0.1);}
+
+.btn{width:100%;background:linear-gradient(135deg,#0066cc,#00aaff);border:none;border-radius:7px;color:#fff;cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;letter-spacing:2px;padding:13px;text-transform:uppercase;transition:all .2s;margin-top:8px;}
+.btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,170,255,0.3);}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+
+.error{background:rgba(255,61,61,0.1);border:1px solid rgba(255,61,61,0.3);border-radius:6px;color:#ff8a80;font-size:12px;padding:10px 14px;margin-bottom:16px;display:none;}
+.success{background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);border-radius:6px;color:#00e676;font-size:12px;padding:10px 14px;margin-bottom:16px;display:none;}
+
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:24px;}
+.plan-card{background:#0a0e17;border:1px solid #1e3a5f;border-radius:8px;padding:12px;text-align:center;cursor:pointer;transition:all .2s;}
+.plan-card:hover,.plan-card.selected{border-color:#00aaff;background:#1a2235;}
+.plan-name{font-size:13px;font-weight:700;color:#00aaff;letter-spacing:1px;}
+.plan-price{font-size:11px;color:#6b8aaa;margin-top:2px;}
+.plan-limit{font-size:10px;color:#4ec9b0;margin-top:4px;}
+
+.divider{display:flex;align-items:center;gap:10px;margin:20px 0;color:#6b8aaa;font-size:11px;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:#1e3a5f;}
+
+.footer{text-align:center;margin-top:20px;font-size:11px;color:#6b8aaa;}
+.footer a{color:#00aaff;text-decoration:none;}
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    <div class="logo-title">PLC AI STUDIO</div>
+    <div class="logo-sub">SIEMENS S7 · IEC 61131-3 · AI POWERED</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" id="tab-login" onclick="switchTab('login')">Đăng Nhập</div>
+    <div class="tab" id="tab-register" onclick="switchTab('register')">Đăng Ký</div>
+  </div>
+
+  <div id="msg-error" class="error"></div>
+  <div id="msg-success" class="success"></div>
+
+  <!-- Login Form -->
+  <div id="form-login">
+    <div class="field">
+      <label class="label">Email</label>
+      <input class="input" type="email" id="login-email" placeholder="your@email.com">
+    </div>
+    <div class="field">
+      <label class="label">Mật khẩu</label>
+      <input class="input" type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn" id="btn-login" onclick="doLogin()">⚡ Đăng Nhập</button>
+    <div class="footer" style="margin-top:16px;">
+      Demo: <strong>admin@plcai.com</strong> / <strong>admin123</strong>
+    </div>
+  </div>
+
+  <!-- Register Form -->
+  <div id="form-register" style="display:none;">
+    <div class="field">
+      <label class="label">Họ tên</label>
+      <input class="input" type="text" id="reg-name" placeholder="Nguyễn Văn A">
+    </div>
+    <div class="field">
+      <label class="label">Email</label>
+      <input class="input" type="email" id="reg-email" placeholder="your@email.com">
+    </div>
+    <div class="field">
+      <label class="label">Mật khẩu</label>
+      <input class="input" type="password" id="reg-pass" placeholder="Ít nhất 6 ký tự">
+    </div>
+
+    <div class="divider">Chọn gói dùng thử</div>
+    <div class="plans">
+      <div class="plan-card selected" id="plan-free" onclick="selectPlan('free')">
+        <div class="plan-name">FREE</div>
+        <div class="plan-price">Miễn phí</div>
+        <div class="plan-limit">10 lần/tháng</div>
+      </div>
+      <div class="plan-card" id="plan-pro" onclick="selectPlan('pro')">
+        <div class="plan-name">PRO</div>
+        <div class="plan-price">Liên hệ</div>
+        <div class="plan-limit">100 lần/tháng</div>
+      </div>
+      <div class="plan-card" id="plan-enterprise" onclick="selectPlan('enterprise')">
+        <div class="plan-name">ENTERPRISE</div>
+        <div class="plan-price">Liên hệ</div>
+        <div class="plan-limit">Không giới hạn</div>
+      </div>
+    </div>
+
+    <button class="btn" id="btn-register" onclick="doRegister()">🚀 Tạo Tài Khoản</button>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin + '/api';
+let selectedPlan = 'free';
+
+function switchTab(t) {
+  document.getElementById('form-login').style.display = t==='login'?'block':'none';
+  document.getElementById('form-register').style.display = t==='register'?'block':'none';
+  document.getElementById('tab-login').className = 'tab'+(t==='login'?' active':'');
+  document.getElementById('tab-register').className = 'tab'+(t==='register'?' active':'');
+  hideMsg();
+}
+
+function selectPlan(plan) {
+  selectedPlan = plan;
+  ['free','pro','enterprise'].forEach(p => {
+    document.getElementById('plan-'+p).className = 'plan-card' + (p===plan?' selected':'');
+  });
+}
+
+function showError(msg) {
+  const el=document.getElementById('msg-error');
+  el.textContent=msg; el.style.display='block';
+  document.getElementById('msg-success').style.display='none';
+}
+function showSuccess(msg) {
+  const el=document.getElementById('msg-success');
+  el.textContent=msg; el.style.display='block';
+  document.getElementById('msg-error').style.display='none';
+}
+function hideMsg() {
+  document.getElementById('msg-error').style.display='none';
+  document.getElementById('msg-success').style.display='none';
+}
+
+async function doLogin() {
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  if(!email||!pass){showError('Vui lòng nhập đầy đủ thông tin');return;}
+  
+  const btn=document.getElementById('btn-login');
+  btn.disabled=true; btn.textContent='Đang đăng nhập...';
+  
+  try {
+    const res = await fetch(`${API}/auth/login`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email, password: pass})
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail||'Lỗi đăng nhập');
+    
+    localStorage.setItem('plc_token', data.token);
+    localStorage.setItem('plc_user', JSON.stringify(data.user));
+    showSuccess('Đăng nhập thành công! Đang chuyển hướng...');
+    
+    setTimeout(() => {
+      if(data.user.is_admin) window.location.href='/admin';
+      else window.location.href='/app';
+    }, 800);
+  } catch(e) {
+    showError(e.message);
+  } finally {
+    btn.disabled=false; btn.textContent='⚡ Đăng Nhập';
+  }
+}
+
+async function doRegister() {
+  const name=document.getElementById('reg-name').value.trim();
+  const email=document.getElementById('reg-email').value.trim();
+  const pass=document.getElementById('reg-pass').value;
+  if(!email||!pass){showError('Vui lòng nhập Email và Mật khẩu');return;}
+  
+  const btn=document.getElementById('btn-register');
+  btn.disabled=true; btn.textContent='Đang tạo tài khoản...';
+  
+  try {
+    const res = await fetch(`${API}/auth/register`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email, password: pass, full_name: name})
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail||'Lỗi đăng ký');
+    
+    localStorage.setItem('plc_token', data.token);
+    showSuccess('Đăng ký thành công! Đang chuyển hướng...');
+    setTimeout(() => window.location.href='/app', 800);
+  } catch(e) {
+    showError(e.message);
+  } finally {
+    btn.disabled=false; btn.textContent='🚀 Tạo Tài Khoản';
+  }
+}
+
+// Auto redirect if already logged in
+const token = localStorage.getItem('plc_token');
+if(token) window.location.href='/app';
+</script>
+</body>
+</html>
