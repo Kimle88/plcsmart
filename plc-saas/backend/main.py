@@ -25,7 +25,7 @@ app.include_router(auth.router,  prefix="/api/auth",  tags=["Auth"])
 app.include_router(plc.router,   prefix="/api/plc",   tags=["PLC"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 
-frontend_path = os.path.join(os.path.dirname(__file__), "../frontend")
+frontend_path = os.path.join(os.path.dirname(__file__), "frontend")
 if os.path.exists(frontend_path):
     app.mount("/static", StaticFiles(directory=frontend_path), name="static")
 
