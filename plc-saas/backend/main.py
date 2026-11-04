@@ -50,6 +50,14 @@ def plc_app():
 def admin_page():
     return FileResponse(os.path.join(frontend_path, "admin.html"))
 
+@app.get("/privacy")
+def privacy_page():
+    return FileResponse(os.path.join(frontend_path, "privacy.html"))
+
+@app.get("/terms")
+def terms_page():
+    return FileResponse(os.path.join(frontend_path, "terms.html"))
+
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "PLCSmart", "version": "2.0.0"}

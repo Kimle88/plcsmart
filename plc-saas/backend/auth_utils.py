@@ -6,6 +6,8 @@ import base64
 import time
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "plc-ai-studio-secret-change-in-production")
+if SECRET_KEY == "plc-ai-studio-secret-change-in-production":
+    print("⚠ WARNING: SECRET_KEY is not set — anyone who knows the default key can forge login tokens. Set SECRET_KEY in Railway variables.")
 
 def hash_password(password: str) -> str:
     salt = os.urandom(16).hex()

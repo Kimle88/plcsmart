@@ -11,6 +11,24 @@ router = APIRouter()
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
+MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-5")
+
+# Giới hạn kích thước đầu vào để endpoint không bị dùng như proxy AI tự do
+MAX_PROMPT_CHARS = 60_000
+MAX_CHAT_MSG_CHARS = 8_000
+
+GENERATE_SYSTEM = (
+    "You are PLCSmart, a senior PLC engineer. You ONLY produce PLC programs (ladder JSON + code) "
+    "for industrial automation. If the request is not about PLC/automation programming, return "
+    '{"title":"Unsupported request","description":"PLCSmart only generates PLC programs.","rungs":[],"scl_code":"","io_list":[],"notes":[]}. '
+    "Engineering rules: one tag = one address; never reuse an address for different tags; every internal bit that is read "
+    "must be written somewhere; no double coils; on S7-1200/1500 IEC timers/counters use instance DBs; never reset IEC timers "
+    "with R coils. Output JSON only."
+)
+CHAT_SYSTEM_PREFIX = (
+    "You are the PLCSmart assistant. Only help with PLC programming, industrial automation, electrical control and "
+    "related engineering topics; politely decline unrelated requests. Always remind users to verify safety-critical logic. "
+)
 
 def get_current_user(authorization: str = Header(None)):
     if not authorization or not authorization.startswith("Bearer "):
@@ -64,6 +82,9 @@ async def generate_plc(req: GenerateRequest, authorization: str = Header(None)):
                     detail=f"Đã đạt giới hạn {sub['monthly_limit']} lần/tháng. Nâng cấp gói để dùng thêm!"
                 )
 
+        if len(req.prompt) > MAX_PROMPT_CHARS:
+            raise HTTPException(status_code=413, detail="Mô tả quá dài. Hãy rút gọn yêu cầu hoặc tài liệu Knowledge Base.")
+
         # Proxy to Anthropic
         if not ANTHROPIC_API_KEY:
             raise HTTPException(status_code=500, detail="API Key chưa được cấu hình trên server")
@@ -77,8 +98,9 @@ async def generate_plc(req: GenerateRequest, authorization: str = Header(None)):
                     "anthropic-version": "2023-06-01"
                 },
                 json={
-                    "model": "claude-sonnet-4-5",
+                    "model": MODEL,
                     "max_tokens": 8000,
+                    "system": GENERATE_SYSTEM,
                     "messages": [{"role": "user", "content": req.prompt}]
                 }
             )
@@ -104,13 +126,17 @@ async def chat_plc(req: ChatRequest, authorization: str = Header(None)):
         raise HTTPException(status_code=500, detail="API Key chưa được cấu hình")
 
     async with httpx.AsyncClient(timeout=60) as client:
+        msgs = req.messages[-10:]
+        for m in msgs:
+            c = m.get("content") if isinstance(m, dict) else None
+            if isinstance(c, str) and len(c) > MAX_CHAT_MSG_CHARS:
+                raise HTTPException(status_code=413, detail="Tin nhắn quá dài.")
         body = {
-            "model": "claude-sonnet-4-5",
+            "model": MODEL,
             "max_tokens": 1000,
-            "messages": req.messages[-10:]
+            "system": CHAT_SYSTEM_PREFIX + (req.system or "")[:2000],
+            "messages": msgs
         }
-        if req.system:
-            body["system"] = req.system
 
         response = await client.post(
             ANTHROPIC_URL,

@@ -62,9 +62,20 @@ def init_db():
     # Create default admin if not exists
     from auth_utils import hash_password
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@plcai.com")
-    admin_pass = os.environ.get("ADMIN_PASSWORD", "admin123")
+    admin_pass = os.environ.get("ADMIN_PASSWORD")
+    generated = False
+    if not admin_pass:
+        import secrets
+        admin_pass = secrets.token_urlsafe(16)
+        generated = True
     c.execute("SELECT id FROM users WHERE email=?", (admin_email,))
-    if not c.fetchone():
+    existing_admin = c.fetchone()
+    if existing_admin and not generated:
+        # ADMIN_PASSWORD set in the environment → always sync it, so the old default
+        # password ("admin123") stops working as soon as the variable is configured.
+        c.execute("UPDATE users SET password_hash=? WHERE email=?", (hash_password(admin_pass), admin_email))
+        print(f"✅ Admin password synced from ADMIN_PASSWORD for {admin_email}")
+    if not existing_admin:
         c.execute("""
             INSERT INTO users (email, password_hash, full_name, plan, is_admin)
             VALUES (?, ?, ?, 'enterprise', 1)
@@ -74,7 +85,10 @@ def init_db():
             INSERT INTO subscriptions (user_id, plan, monthly_limit)
             VALUES (?, 'enterprise', 999999)
         """, (user_id,))
-        print(f"✅ Admin created: {admin_email} / {admin_pass}")
+        if generated:
+            print(f"⚠ ADMIN_PASSWORD not set — generated one-time admin password for {admin_email}: {admin_pass}")
+        else:
+            print(f"✅ Admin created: {admin_email}")
 
     conn.commit()
     conn.close()
